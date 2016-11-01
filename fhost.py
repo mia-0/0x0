@@ -143,7 +143,7 @@ def store_file(f, addr):
         if mime in app.config["FHOST_MIME_BLACKLIST"] or guessmime in app.config["FHOST_MIME_BLACKLIST"]:
             abort(415)
 
-        if mime.startswith("text/") and not "charset" in f.mime:
+        if mime.startswith("text/") and not "charset" in f.content_type:
             mime += "; charset=utf-8"
 
         ext = os.path.splitext(f.filename)[1]
