@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from flask import Flask, abort, escape, make_response, redirect, request, send_from_directory, url_for
+from flask import Flask, abort, escape, make_response, redirect, request, send_from_directory, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
@@ -242,6 +242,24 @@ def get(path):
             return redirect(u.url)
 
     abort(404)
+
+@app.route("/dump_urls/")
+@app.route("/dump_urls/<int:start>")
+def dump_urls(start=0):
+    meta = "#FORMAT: BEACON\n#PREFIX: {}/\n\n".format(fhost_url("https"))
+
+    def gen():
+        yield meta
+
+        for url in URL.query.order_by(URL.id.asc()).offset(start):
+            if url.url.startswith("http") or url.url.startswith("https"):
+                bar = "|"
+            else:
+                bar = "||"
+
+            yield url.getname() + bar + url.url + "\n"
+
+    return Response(gen(), mimetype="text/plain")
 
 @app.route("/", methods=["GET", "POST"])
 def fhost():
