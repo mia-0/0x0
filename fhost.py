@@ -107,7 +107,7 @@ def shorten(url):
     if len(url) > app.config["MAX_URL_LENGTH"]:
         abort(414)
 
-    if not url_valid(url):
+    if not url_valid(url) or is_fhost_url(url):
         abort(400)
 
     existing = URL.query.filter_by(url=url).first()
