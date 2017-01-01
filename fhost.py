@@ -94,6 +94,15 @@ def getpath(fn):
 def geturl(p):
     return url_for("get", path=p, _external=True) + "\n"
 
+def fhost_url(scheme=None):
+    if not scheme:
+        return url_for(".fhost", _external=True).rstrip("/")
+    else:
+        return url_for(".fhost", _external=True, _scheme=scheme).rstrip("/")
+
+def is_fhost_url(url):
+    return url.startswith(fhost_url()) or url.startswith(fhost_url("https"))
+
 def shorten(url):
     if len(url) > app.config["MAX_URL_LENGTH"]:
         abort(414)
@@ -171,10 +180,7 @@ def store_file(f, addr):
         return geturl(sf.getname())
 
 def store_url(url, addr):
-    fhost_url = url_for(".fhost", _external=True).rstrip("/")
-    fhost_url_https = url_for(".fhost", _external=True, _scheme="https").rstrip("/")
-
-    if url.startswith(fhost_url) or url.startswith(fhost_url_https):
+    if is_fhost_url(url):
         return segfault(508)
 
     r = requests.get(url, stream=True, verify=False)
@@ -317,7 +323,7 @@ IRC on Freenode, or send an email to lachs0r@(this domain).
 
 Please allow up to 24 hours for a response.
 </pre>
-""".format(url_for(".fhost", _external=True).rstrip("/"),
+""".format(fhost_url(),
            maxsize, str(maxsizehalf).rjust(27), str(maxsizenum).rjust(27),
            maxsizeunit.rjust(54),
            ", ".join(app.config["FHOST_MIME_BLACKLIST"]))
