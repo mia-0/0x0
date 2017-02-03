@@ -42,6 +42,8 @@ app.config["FHOST_MIME_BLACKLIST"] = [
     "application/java-vm"
 ]
 
+app.config["FHOST_UPLOAD_BLACKLIST"] = "tornodes.txt"
+
 try:
     mimedetect = Magic(mime=True, mime_encoding=False)
 except:
@@ -121,7 +123,21 @@ def shorten(url):
 
         return geturl(u.getname())
 
+def in_upload_bl(addr):
+    if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
+        with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
+            check = addr.lstrip("::ffff:")
+            for l in bl.readlines():
+                if not l.startswith("#"):
+                    if check == l.rstrip():
+                        return True
+
+    return False
+
 def store_file(f, addr):
+    if in_upload_bl(addr):
+        return "Your host is blocked from uploading files.\n", 451
+
     data = f.stream.read()
     digest = sha256(data).hexdigest()
     existing = File.query.filter_by(sha256=digest).first()
