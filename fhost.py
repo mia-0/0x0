@@ -203,7 +203,7 @@ def store_url(url, addr):
 
     try:
         r.raise_for_status()
-    except (requests.exceptions.HTTPError, e):
+    except requests.exceptions.HTTPError as e:
         return str(e) + "\n"
 
     if "content-length" in r.headers:
