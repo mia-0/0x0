@@ -459,8 +459,11 @@ def queryhash(h):
         query(su.enbase(f.id, 1))
 
 @manager.command
-def queryaddr(a):
+def queryaddr(a, nsfw=False):
     res = File.query.filter_by(addr=a)
+
+    if nsfw:
+        res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
 
     for f in res:
         query(su.enbase(f.id, 1))
@@ -497,15 +500,15 @@ def update_nsfw():
 
 
 @manager.command
-def querybl():
+def querybl(nsfw=False):
     if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
         with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
             for l in bl.readlines():
                 if not l.startswith("#"):
                     if not ":" in l:
-                        queryaddr("::ffff:" + l.rstrip())
+                        queryaddr("::ffff:" + l.rstrip(), nsfw)
                     else:
-                        queryaddr(l.strip())
+                        queryaddr(l.strip(), nsfw)
 
 if __name__ == "__main__":
     manager.run()
