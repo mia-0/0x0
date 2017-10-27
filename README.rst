@@ -25,6 +25,17 @@ now and then.
 Before running the service for the first time, run ``./fhost.py db upgrade``.
 
 
+NSFW Detection
+--------------
+
+0x0 supports classification of NSFW content via Yahoo’s open_nsfw Caffe
+neural network model. This works for images and video files and requires
+the following:
+
+* Caffe Python module (built for Python 3)
+* ``ffmpegthumbnailer`` executable in ``$PATH``
+
+
 FAQ
 ---
 
