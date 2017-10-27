@@ -45,7 +45,7 @@ app.config["FHOST_MIME_BLACKLIST"] = [
 app.config["FHOST_UPLOAD_BLACKLIST"] = "tornodes.txt"
 
 app.config["NSFW_DETECT"] = True
-app.config["NSFW_THRESHOLD"] = 0.7
+app.config["NSFW_THRESHOLD"] = 0.608
 
 if app.config["NSFW_DETECT"]:
     from nsfw_detect import NSFWDetector
