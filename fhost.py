@@ -109,6 +109,14 @@ class File(db.Model):
         else:
             return url_for("get", path=n, _external=True) + "\n"
 
+    def pprint(self):
+        print("url: {}".format(self.getname()))
+        vals = vars(self)
+
+        for v in vals:
+            if not v.startswith("_sa"):
+                print("{}: {}".format(v, vals[v]))
+
 def getpath(fn):
     return os.path.join(app.config["FHOST_STORAGE_PATH"], fn)
 
@@ -445,28 +453,27 @@ def query(name):
     f = File.query.get(id)
 
     if f:
-        print("url: {}".format(f.getname()))
-        vals = vars(f)
-
-        for v in vals:
-            if not v.startswith("_sa"):
-                print("{}: {}".format(v, vals[v]))
+        f.pprint()
 
 @manager.command
 def queryhash(h):
     f = File.query.filter_by(sha256=h).first()
+
     if f:
-        query(su.enbase(f.id, 1))
+        f.pprint()
 
 @manager.command
-def queryaddr(a, nsfw=False):
+def queryaddr(a, nsfw=False, removed=False):
     res = File.query.filter_by(addr=a)
+
+    if not removed:
+        res = res.filter(File.removed != True)
 
     if nsfw:
         res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
 
     for f in res:
-        query(su.enbase(f.id, 1))
+        f.pprint()
 
 def nsfw_detect(f):
     try:
@@ -500,15 +507,27 @@ def update_nsfw():
 
 
 @manager.command
-def querybl(nsfw=False):
+def querybl(nsfw=False, removed=False):
+    blist = []
     if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
         with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
             for l in bl.readlines():
                 if not l.startswith("#"):
                     if not ":" in l:
-                        queryaddr("::ffff:" + l.rstrip(), nsfw)
+                        blist.append("::ffff:" + l.rstrip())
                     else:
-                        queryaddr(l.strip(), nsfw)
+                        blist.append(l.strip())
+
+    res = File.query.filter(File.addr.in_(blist))
+
+    if not removed:
+        res = res.filter(File.removed != True)
+
+    if nsfw:
+        res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
+
+        for f in res:
+            f.pprint()
 
 if __name__ == "__main__":
     manager.run()
