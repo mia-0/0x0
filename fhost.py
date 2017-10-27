@@ -438,5 +438,16 @@ def queryaddr(a):
     for f in res:
         query(su.enbase(f.id, 1))
 
+@manager.command
+def querybl():
+    if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
+        with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
+            for l in bl.readlines():
+                if not l.startswith("#"):
+                    if not ":" in l:
+                        queryaddr("::ffff:" + l.rstrip())
+                    else:
+                        queryaddr(l.strip())
+
 if __name__ == "__main__":
     manager.run()
