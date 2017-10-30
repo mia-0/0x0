@@ -234,7 +234,8 @@ def store_url(url, addr):
     if is_fhost_url(url):
         return segfault(508)
 
-    r = requests.get(url, stream=True, verify=False)
+    h = { "Accept-Encoding" : "identity" }
+    r = requests.get(url, stream=True, verify=False, headers=h)
 
     try:
         r.raise_for_status()
