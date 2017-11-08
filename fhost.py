@@ -476,6 +476,17 @@ def queryaddr(a, nsfw=False, removed=False):
     for f in res:
         f.pprint()
 
+@manager.command
+def deladdr(a):
+    res = File.query.filter_by(addr=a).filter(File.removed != True)
+
+    for f in res:
+        if os.path.exists(getpath(f.sha256)):
+            os.remove(getpath(f.sha256))
+        f.removed = True
+
+    db.session.commit()
+
 def nsfw_detect(f):
     try:
         open(f["path"], 'r').close()
