@@ -527,8 +527,8 @@ def querybl(nsfw=False, removed=False):
     if nsfw:
         res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
 
-        for f in res:
-            f.pprint()
+    for f in res:
+        f.pprint()
 
 if __name__ == "__main__":
     manager.run()
