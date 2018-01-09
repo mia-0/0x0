@@ -25,6 +25,7 @@ app.config["FHOST_STORAGE_PATH"] = "up"
 app.config["FHOST_USE_X_ACCEL_REDIRECT"] = True # expect nginx by default
 app.config["USE_X_SENDFILE"] = False
 app.config["FHOST_EXT_OVERRIDE"] = {
+    "audio/flac" : ".flac",
     "image/gif" : ".gif",
     "image/jpeg" : ".jpg",
     "image/png" : ".png",
