@@ -282,7 +282,7 @@ def get(path):
             fsize = os.path.getsize(fpath)
 
             if app.config["FHOST_USE_X_ACCEL_REDIRECT"]:
-                response = make_response()
+                response = make_response(open(fpath, "r").read(), 200)
                 response.headers["Content-Type"] = f.mime
                 response.headers["Content-Length"] = fsize
                 response.headers["X-Accel-Redirect"] = "/" + fpath
