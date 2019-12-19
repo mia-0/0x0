@@ -262,22 +262,27 @@ def store_url(url, addr):
     else:
         return "Could not determine remote file size (no Content-Length in response header; shoot admin).\n", 411
 
+def msg404(fn):
+    return make_response("404 File Not Found: /{0}\n".format(fn), 404)
+
 @app.route("/<path:path>")
 def get(path):
     p = os.path.splitext(path)
     id = su.debase(p[0])
 
     if p[1]:
-        f = File.query.get(id)
+        try:
+            f = File.query.get(id)
+        except:
+            f = None
 
-        if f and f.ext == p[1]:
+        if not f:
+            return msg404(path)
+        elif f.ext == p[1]:
             if f.removed:
                 return legal()
 
             fpath = getpath(f.sha256)
-
-            if not os.path.exists(fpath):
-                abort(404)
 
             fsize = os.path.getsize(fpath)
 
@@ -295,7 +300,7 @@ def get(path):
         if u:
             return redirect(u.url)
 
-    abort(404)
+    return msg404(path)
 
 @app.route("/dump_urls/")
 @app.route("/dump_urls/<int:start>")
