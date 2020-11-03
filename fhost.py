@@ -51,6 +51,7 @@ app.config["FHOST_EXT_OVERRIDE"] = {
     "video/webm" : ".webm",
     "video/x-matroska" : ".mkv",
     "application/octet-stream" : ".bin",
+    "text/plain" : ".log",
     "text/plain" : ".txt",
     "text/x-diff" : ".diff",
 }
