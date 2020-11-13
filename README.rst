@@ -19,6 +19,13 @@ For all other servers, set ``FHOST_USE_X_ACCEL_REDIRECT`` to ``False`` and
 Otherwise, Flask will serve the file with chunked encoding, which sucks and
 should be avoided at all costs.
 
+You can configure these parameters by creating a file called ``fhost.cfg``
+and placing normal python assignment statements in it. For example::
+
+    FHOST_USE_ACCEL_REDIRECT = False
+    FHOST_USE_X_SENDFILE = True
+    MAX_URL_LENGTH = 4096
+
 To make files expire, simply create a cronjob that runs ``cleanup.py`` every
 now and then.
 

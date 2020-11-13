@@ -68,6 +68,8 @@ app.config["FHOST_UPLOAD_BLACKLIST"] = "tornodes.txt"
 app.config["NSFW_DETECT"] = False
 app.config["NSFW_THRESHOLD"] = 0.608
 
+app.config.from_pyfile("fhost.cfg", silent=True)
+
 if app.config["NSFW_DETECT"]:
     from nsfw_detect import NSFWDetector
     nsfw = NSFWDetector()
