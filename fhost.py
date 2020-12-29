@@ -316,24 +316,6 @@ def get(path):
 
     abort(404)
 
-@app.route("/dump_urls/")
-@app.route("/dump_urls/<int:start>")
-def dump_urls(start=0):
-    meta = "#FORMAT: BEACON\n#PREFIX: {}/\n\n".format(fhost_url("https"))
-
-    def gen():
-        yield meta
-
-        for url in URL.query.order_by(URL.id.asc()).offset(start):
-            if url.url.startswith("http") or url.url.startswith("https"):
-                bar = "|"
-            else:
-                bar = "||"
-
-            yield url.getname() + bar + url.url + "\n"
-
-    return Response(gen(), mimetype="text/plain")
-
 @app.route("/", methods=["GET", "POST"])
 def fhost():
     if request.method == "POST":
