@@ -1,0 +1,45 @@
+<pre>
+THE NULL POINTER
+================
+{% set fhost_url = url_for("fhost", _external=True).rstrip("/") %}
+HTTP POST files here:
+    curl -F'file=@yourfile.png' {{ fhost_url }}
+You can also POST remote URLs:
+    curl -F'url=http://example.com/image.jpg' {{ fhost_url }}
+Or you can shorten URLs:
+    curl -F'shorten=http://example.com/some/long/url' {{ fhost_url }}
+
+File URLs are valid for at least 30 days and up to a year (see below).
+Shortened URLs do not expire.
+{% set max_size = config["MAX_CONTENT_LENGTH"]|filesizeformat(True) %}
+Maximum file size: {{ max_size }}
+Not allowed: {{ config["FHOST_MIME_BLACKLIST"]|join(", ") }}
+
+
+FILE RETENTION PERIOD
+---------------------
+
+retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
+
+   days
+    365 |  \\
+        |   \\
+        |    \\
+        |     \\
+        |      \\
+        |       \\
+        |        ..
+        |          \\
+  197.5 | ----------..-------------------------------------------
+        |             ..
+        |               \\
+        |                ..
+        |                  ...
+        |                     ..
+        |                       ...
+        |                          ....
+        |                              ......
+     30 |                                    ....................
+          0{{ ((config["MAX_CONTENT_LENGTH"]/2)|filesizeformat(True)).split(" ")[0].rjust(27) }}{{ max_size.split(" ")[0].rjust(27) }}
+           {{ max_size.split(" ")[1].rjust(54) }}
+</pre>

@@ -19,12 +19,12 @@
     and limitations under the License.
 """
 
-from flask import Flask, abort, escape, make_response, redirect, request, send_from_directory, url_for, Response
+from flask import Flask, abort, make_response, redirect, request, send_from_directory, url_for, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
+from jinja2.exceptions import *
 from hashlib import sha256
-from humanize import naturalsize
 from magic import Magic
 from mimetypes import guess_extension
 import os, sys
@@ -192,7 +192,7 @@ def store_file(f, addr):
 
     if existing:
         if existing.removed:
-            return legal()
+            abort(451)
 
         epath = getpath(existing.sha256)
 
@@ -256,7 +256,7 @@ def store_file(f, addr):
 
 def store_url(url, addr):
     if is_fhost_url(url):
-        return segfault(508)
+        abort(400)
 
     h = { "Accept-Encoding" : "identity" }
     r = requests.get(url, stream=True, verify=False, headers=h)
@@ -277,12 +277,9 @@ def store_url(url, addr):
 
             return store_file(f, addr)
         else:
-            hl = naturalsize(l, binary = True)
-            hml = naturalsize(app.config["MAX_CONTENT_LENGTH"], binary=True)
-
-            return "Remote file too large ({0} > {1}).\n".format(hl, hml), 413
+            abort(413)
     else:
-        return "Could not determine remote file size (no Content-Length in response header; shoot admin).\n", 411
+        abort(411)
 
 @app.route("/<path:path>")
 def get(path):
@@ -294,7 +291,7 @@ def get(path):
 
         if f and f.ext == p[1]:
             if f.removed:
-                return legal()
+                abort(451)
 
             fpath = getpath(f.sha256)
 
@@ -351,76 +348,7 @@ def fhost():
 
         abort(400)
     else:
-        fmts = list(app.config["FHOST_EXT_OVERRIDE"])
-        fmts.sort()
-        maxsize = naturalsize(app.config["MAX_CONTENT_LENGTH"], binary=True)
-        maxsizenum, maxsizeunit = maxsize.split(" ")
-        maxsizenum = float(maxsizenum)
-        maxsizehalf = maxsizenum / 2
-
-        if maxsizenum.is_integer():
-            maxsizenum = int(maxsizenum)
-        if maxsizehalf.is_integer():
-            maxsizehalf = int(maxsizehalf)
-
-        return """<pre>
-THE NULL POINTER
-================
-
-HTTP POST files here:
-    curl -F'file=@yourfile.png' {0}
-You can also POST remote URLs:
-    curl -F'url=http://example.com/image.jpg' {0}
-Or you can shorten URLs:
-    curl -F'shorten=http://example.com/some/long/url' {0}
-
-File URLs are valid for at least 30 days and up to a year (see below).
-Shortened URLs do not expire.
-
-Maximum file size: {1}
-Not allowed: {5}
-
-
-FILE RETENTION PERIOD
----------------------
-
-retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
-
-   days
-    365 |  \\
-        |   \\
-        |    \\
-        |     \\
-        |      \\
-        |       \\
-        |        ..
-        |          \\
-  197.5 | ----------..-------------------------------------------
-        |             ..
-        |               \\
-        |                ..
-        |                  ...
-        |                     ..
-        |                       ...
-        |                          ....
-        |                              ......
-     30 |                                    ....................
-          0{2}{3}
-           {4}
-
-
-ABUSE
------
-
-If you would like to request permanent deletion, please contact lachs0r via
-IRC on Freenode, or send an email to lachs0r@(this domain).
-
-Please allow up to 24 hours for a response.
-</pre>
-""".format(fhost_url(),
-           maxsize, str(maxsizehalf).rjust(27), str(maxsizenum).rjust(27),
-           maxsizeunit.rjust(54),
-           ", ".join(app.config["FHOST_MIME_BLACKLIST"]))
+        return render_template("index.html")
 
 @app.route("/robots.txt")
 def robots():
@@ -428,35 +356,18 @@ def robots():
 Disallow: /
 """
 
-def legal():
-    return "451 Unavailable For Legal Reasons\n", 451
-
 @app.errorhandler(400)
 @app.errorhandler(404)
+@app.errorhandler(411)
+@app.errorhandler(413)
 @app.errorhandler(414)
 @app.errorhandler(415)
-def segfault(e):
-    return "Segmentation fault\n", e.code
-
-@app.errorhandler(404)
-def notfound(e):
-    return u"""<pre>Process {0} stopped
-* thread #1: tid = {0}, {1:#018x}, name = '{2}'
-    frame #0:
-Process {0} stopped
-* thread #8: tid = {0}, {3:#018x} fhost`get(path='{4}') + 27 at fhost.c:139, name = 'fhost/responder', stop reason = invalid address (fault address: 0x30)
-    frame #0: {3:#018x} fhost`get(path='{4}') + 27 at fhost.c:139
-   136   get(SrvContext *ctx, const char *path)
-   137   {{
-   138       StoredObj *obj = ctx->store->query(shurl_debase(path));
--> 139       switch (obj->type) {{
-   140           case ObjTypeFile:
-   141               ctx->serve_file_id(obj->id);
-   142               break;
-(lldb) q</pre>
-""".format(os.getpid(), id(app), "fhost", id(get), escape(request.path)), e.code
-
-@manager.command
+@app.errorhandler(451)
+def ehandler(e):
+    try:
+        return render_template(f"{e.code}.html", id=id), e.code
+    except TemplateNotFound:
+        return "Segmentation fault\n", e.code
 def debug():
     app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
     app.run(debug=True, port=4562,host="0.0.0.0")
