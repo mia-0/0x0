@@ -30,6 +30,7 @@ import os, sys
 import requests
 from short_url import UrlEncoder
 from validators import url as url_valid
+from pathlib import Path
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
@@ -81,8 +82,8 @@ except:
 Please install python-magic.""")
     sys.exit(1)
 
-if not os.path.exists(app.config["FHOST_STORAGE_PATH"]):
-    os.mkdir(app.config["FHOST_STORAGE_PATH"])
+storage = Path(app.config["FHOST_STORAGE_PATH"])
+storage.mkdir(parents=True, exist_ok=True)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -128,9 +129,6 @@ class File(db.Model):
             return url_for("get", path=n, _external=True, _anchor="nsfw") + "\n"
         else:
             return url_for("get", path=n, _external=True) + "\n"
-
-def getpath(fn):
-    return os.path.join(app.config["FHOST_STORAGE_PATH"], fn)
 
 def fhost_url(scheme=None):
     if not scheme:
@@ -182,18 +180,18 @@ def store_file(f, addr):
         if existing.removed:
             abort(451)
 
-        epath = getpath(existing.sha256)
+        epath = storage / existing.sha256
 
-        if not os.path.exists(epath):
-            with open(epath, "wb") as of:
-                of.write(data)
+        if not epath.is_file():
+            f.save(epath)
 
         if existing.nsfw_score == None:
             if app.config["NSFW_DETECT"]:
                 existing.nsfw_score = nsfw.detect(epath)
 
-        os.utime(epath, None)
+        epath.touch()
         existing.addr = addr
+
         db.session.commit()
 
         return existing.geturl()
@@ -226,10 +224,8 @@ def store_file(f, addr):
         if not ext:
             ext = ".bin"
 
-        spath = getpath(digest)
-
-        with open(spath, "wb") as of:
-            of.write(data)
+        spath = storage / digest
+        f.save(spath)
 
         if app.config["NSFW_DETECT"]:
             nsfw_score = nsfw.detect(spath)
@@ -281,17 +277,15 @@ def get(path):
             if f.removed:
                 abort(451)
 
-            fpath = getpath(f.sha256)
+            fpath = storage / f.sha256
 
-            if not os.path.exists(fpath):
+            if not fpath.is_file():
                 abort(404)
-
-            fsize = os.path.getsize(fpath)
 
             if app.config["FHOST_USE_X_ACCEL_REDIRECT"]:
                 response = make_response()
                 response.headers["Content-Type"] = f.mime
-                response.headers["Content-Length"] = fsize
+                response.headers["Content-Length"] = fpath.stat().st_size
                 response.headers["X-Accel-Redirect"] = "/" + fpath
                 return response
             else:
