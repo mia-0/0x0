@@ -270,7 +270,7 @@ def store_url(url, addr):
 
 @app.route("/<path:path>")
 def get(path):
-    path = Path(path)
+    path = Path(path.split("/", 1)[0])
     sufs = "".join(path.suffixes[-2:])
     name = path.name[:-len(sufs) or None]
     id = su.debase(name)
