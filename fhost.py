@@ -26,7 +26,7 @@ from jinja2.exceptions import *
 from hashlib import sha256
 from magic import Magic
 from mimetypes import guess_extension
-import os, sys
+import sys
 import requests
 from short_url import UrlEncoder
 from validators import url as url_valid
@@ -66,10 +66,11 @@ app.config.update(
     URL_ALPHABET = "DEQhd2uFteibPwq0SWBInTpA_jcZL5GKz3YCR14Ulk87Jors9vNHgfaOmMXy6Vx-",
 )
 
-app.config.from_pyfile("config.py")
+if not app.config["TESTING"]:
+    app.config.from_pyfile("config.py")
 
-if app.config["DEBUG"]:
-    app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
+    if app.config["DEBUG"]:
+        app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
 
 if app.config["NSFW_DETECT"]:
     from nsfw_detect import NSFWDetector
@@ -81,9 +82,6 @@ except:
     print("""Error: You have installed the wrong version of the 'magic' module.
 Please install python-magic.""")
     sys.exit(1)
-
-storage = Path(app.config["FHOST_STORAGE_PATH"])
-storage.mkdir(parents=True, exist_ok=True)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -103,6 +101,16 @@ class URL(db.Model):
     def geturl(self):
         return url_for("get", path=self.getname(), _external=True) + "\n"
 
+    def get(url):
+        u = URL.query.filter_by(url=url).first()
+
+        if not u:
+            u = URL(url)
+            db.session.add(u)
+            db.session.commit()
+
+        return u
+
 class File(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     sha256 = db.Column(db.String, unique = True)
@@ -112,12 +120,11 @@ class File(db.Model):
     removed = db.Column(db.Boolean, default=False)
     nsfw_score = db.Column(db.Float)
 
-    def __init__(self, sha256, ext, mime, addr, nsfw_score):
+    def __init__(self, sha256, ext, mime, addr):
         self.sha256 = sha256
         self.ext = ext
         self.mime = mime
         self.addr = addr
-        self.nsfw_score = nsfw_score
 
     def getname(self):
         return u"{0}{1}".format(su.enbase(self.id, 1), self.ext)
@@ -129,6 +136,71 @@ class File(db.Model):
             return url_for("get", path=n, _external=True, _anchor="nsfw") + "\n"
         else:
             return url_for("get", path=n, _external=True) + "\n"
+
+    def store(file_, addr):
+        data = file_.stream.read()
+        digest = sha256(data).hexdigest()
+
+        def get_mime():
+            guess = mimedetect.from_buffer(data)
+            app.logger.debug(f"MIME - specified: '{file_.content_type}' - detected: '{guess}'")
+
+            if not file_.content_type or not "/" in file_.content_type or file_.content_type == "application/octet-stream":
+                mime = guess
+            else:
+                mime = file_.content_type
+
+            if mime in app.config["FHOST_MIME_BLACKLIST"] or guess in app.config["FHOST_MIME_BLACKLIST"]:
+                abort(415)
+
+            if mime.startswith("text/") and not "charset" in mime:
+                mime += "; charset=utf-8"
+
+            return mime
+
+        def get_ext(mime):
+            ext = "".join(Path(file_.filename).suffixes[-2:])
+            gmime = mime[:mime.find(";")]
+            guess = guess_extension(gmime)
+
+            app.logger.debug(f"extension - specified: '{ext}' - detected: '{guess}'")
+
+            if not ext:
+                if gmime in app.config["FHOST_EXT_OVERRIDE"]:
+                    ext = app.config["FHOST_EXT_OVERRIDE"][gmime]
+                else:
+                    ext = guess_extension(gmime)
+
+            return ext[:app.config["FHOST_MAX_EXT_LENGTH"]] or ".bin"
+
+        f = File.query.filter_by(sha256=digest).first()
+
+        if f:
+            if f.removed:
+                abort(451)
+        else:
+            mime = get_mime()
+            ext = get_ext(mime)
+            f = File(digest, ext, mime, addr)
+
+        f.addr = addr
+
+        storage = Path(app.config["FHOST_STORAGE_PATH"])
+        storage.mkdir(parents=True, exist_ok=True)
+        p = storage / digest
+
+        if not p.is_file():
+            file_.stream.seek(0)
+            file_.save(p)
+        else:
+            p.touch()
+
+        if not f.nsfw_score and app.config["NSFW_DETECT"]:
+            f.nsfw_score = nsfw.detect(p)
+
+        db.session.add(f)
+        db.session.commit()
+        return f
 
 def fhost_url(scheme=None):
     if not scheme:
@@ -146,16 +218,9 @@ def shorten(url):
     if not url_valid(url) or is_fhost_url(url) or "\n" in url:
         abort(400)
 
-    existing = URL.query.filter_by(url=url).first()
+    u = URL.get(url)
 
-    if existing:
-        return existing.geturl()
-    else:
-        u = URL(url)
-        db.session.add(u)
-        db.session.commit()
-
-        return u.geturl()
+    return u.geturl()
 
 def in_upload_bl(addr):
     if app.config["FHOST_UPLOAD_BLACKLIST"]:
@@ -172,71 +237,9 @@ def store_file(f, addr):
     if in_upload_bl(addr):
         return "Your host is blocked from uploading files.\n", 451
 
-    data = f.stream.read()
-    digest = sha256(data).hexdigest()
-    existing = File.query.filter_by(sha256=digest).first()
+    sf = File.store(f, addr)
 
-    if existing:
-        if existing.removed:
-            abort(451)
-
-        epath = storage / existing.sha256
-
-        if not epath.is_file():
-            f.save(epath)
-
-        if existing.nsfw_score == None:
-            if app.config["NSFW_DETECT"]:
-                existing.nsfw_score = nsfw.detect(epath)
-
-        epath.touch()
-        existing.addr = addr
-
-        db.session.commit()
-
-        return existing.geturl()
-    else:
-        guessmime = mimedetect.from_buffer(data)
-
-        if not f.content_type or not "/" in f.content_type or f.content_type == "application/octet-stream":
-            mime = guessmime
-        else:
-            mime = f.content_type
-
-        if mime in app.config["FHOST_MIME_BLACKLIST"] or guessmime in app.config["FHOST_MIME_BLACKLIST"]:
-            abort(415)
-
-        if mime.startswith("text/") and not "charset" in mime:
-            mime += "; charset=utf-8"
-
-        ext = os.path.splitext(f.filename)[1]
-
-        if not ext:
-            gmime = mime.split(";")[0]
-
-            if not gmime in app.config["FHOST_EXT_OVERRIDE"]:
-                ext = guess_extension(gmime)
-            else:
-                ext = app.config["FHOST_EXT_OVERRIDE"][gmime]
-        else:
-            ext = ext[:8]
-
-        if not ext:
-            ext = ".bin"
-
-        spath = storage / digest
-        f.save(spath)
-
-        if app.config["NSFW_DETECT"]:
-            nsfw_score = nsfw.detect(spath)
-        else:
-            nsfw_score = None
-
-        sf = File(digest, ext, mime, addr, nsfw_score)
-        db.session.add(sf)
-        db.session.commit()
-
-        return sf.geturl()
+    return sf.geturl()
 
 def store_url(url, addr):
     if is_fhost_url(url):
@@ -267,17 +270,19 @@ def store_url(url, addr):
 
 @app.route("/<path:path>")
 def get(path):
-    p = os.path.splitext(path)
-    id = su.debase(p[0])
+    path = Path(path)
+    sufs = "".join(path.suffixes[-2:])
+    name = path.name[:-len(sufs) or None]
+    id = su.debase(name)
 
-    if p[1]:
+    if sufs:
         f = File.query.get(id)
 
-        if f and f.ext == p[1]:
+        if f and f.ext == sufs:
             if f.removed:
                 abort(451)
 
-            fpath = storage / f.sha256
+            fpath = Path(app.config["FHOST_STORAGE_PATH"]) / f.sha256
 
             if not fpath.is_file():
                 abort(404)
@@ -286,7 +291,7 @@ def get(path):
                 response = make_response()
                 response.headers["Content-Type"] = f.mime
                 response.headers["Content-Length"] = fpath.stat().st_size
-                response.headers["X-Accel-Redirect"] = "/" + fpath
+                response.headers["X-Accel-Redirect"] = "/" + str(fpath)
                 return response
             else:
                 return send_from_directory(app.config["FHOST_STORAGE_PATH"], f.sha256, mimetype = f.mime)
