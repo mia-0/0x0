@@ -21,8 +21,7 @@
 
 from flask import Flask, abort, make_response, redirect, request, send_from_directory, url_for, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
-from flask_script import Manager
-from flask_migrate import Migrate, MigrateCommand
+from flask_migrate import Migrate
 from jinja2.exceptions import *
 from hashlib import sha256
 from magic import Magic
@@ -88,9 +87,6 @@ if not os.path.exists(app.config["FHOST_STORAGE_PATH"]):
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-manager = Manager(app)
-manager.add_command("db", MigrateCommand)
-
 su = UrlEncoder(alphabet=app.config["URL_ALPHABET"], block_size=16)
 
 class URL(db.Model):
@@ -132,14 +128,6 @@ class File(db.Model):
             return url_for("get", path=n, _external=True, _anchor="nsfw") + "\n"
         else:
             return url_for("get", path=n, _external=True) + "\n"
-
-    def pprint(self):
-        print("url: {}".format(self.getname()))
-        vals = vars(self)
-
-        for v in vals:
-            if not v.startswith("_sa"):
-                print("{}: {}".format(v, vals[v]))
 
 def getpath(fn):
     return os.path.join(app.config["FHOST_STORAGE_PATH"], fn)
@@ -350,113 +338,3 @@ def ehandler(e):
         return render_template(f"{e.code}.html", id=id), e.code
     except TemplateNotFound:
         return "Segmentation fault\n", e.code
-def debug():
-    app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
-    app.run(debug=True, port=4562,host="0.0.0.0")
-
-@manager.command
-def permadelete(name):
-    id = su.debase(name)
-    f = File.query.get(id)
-
-    if f:
-        if os.path.exists(getpath(f.sha256)):
-            os.remove(getpath(f.sha256))
-        f.removed = True
-        db.session.commit()
-
-@manager.command
-def query(name):
-    id = su.debase(name)
-    f = File.query.get(id)
-
-    if f:
-        f.pprint()
-
-@manager.command
-def queryhash(h):
-    f = File.query.filter_by(sha256=h).first()
-
-    if f:
-        f.pprint()
-
-@manager.command
-def queryaddr(a, nsfw=False, removed=False):
-    res = File.query.filter_by(addr=a)
-
-    if not removed:
-        res = res.filter(File.removed != True)
-
-    if nsfw:
-        res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
-
-    for f in res:
-        f.pprint()
-
-@manager.command
-def deladdr(a):
-    res = File.query.filter_by(addr=a).filter(File.removed != True)
-
-    for f in res:
-        if os.path.exists(getpath(f.sha256)):
-            os.remove(getpath(f.sha256))
-        f.removed = True
-
-    db.session.commit()
-
-def nsfw_detect(f):
-    try:
-        open(f["path"], 'r').close()
-        f["nsfw_score"] = nsfw.detect(f["path"])
-        return f
-    except:
-        return None
-
-@manager.command
-def update_nsfw():
-    if not app.config["NSFW_DETECT"]:
-        print("NSFW detection is disabled in app config")
-        return 1
-
-    from multiprocessing import Pool
-    import tqdm
-
-    res = File.query.filter_by(nsfw_score=None, removed=False)
-
-    with Pool() as p:
-        results = []
-        work = [{ "path" : getpath(f.sha256), "id" : f.id} for f in res]
-
-        for r in tqdm.tqdm(p.imap_unordered(nsfw_detect, work), total=len(work)):
-            if r:
-                results.append({"id": r["id"], "nsfw_score" : r["nsfw_score"]})
-
-        db.session.bulk_update_mappings(File, results)
-        db.session.commit()
-
-
-@manager.command
-def querybl(nsfw=False, removed=False):
-    blist = []
-    if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
-        with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
-            for l in bl.readlines():
-                if not l.startswith("#"):
-                    if not ":" in l:
-                        blist.append("::ffff:" + l.rstrip())
-                    else:
-                        blist.append(l.strip())
-
-    res = File.query.filter(File.addr.in_(blist))
-
-    if not removed:
-        res = res.filter(File.removed != True)
-
-    if nsfw:
-        res = res.filter(File.nsfw_score > app.config["NSFW_THRESHOLD"])
-
-    for f in res:
-        f.pprint()
-
-if __name__ == "__main__":
-    manager.run()
