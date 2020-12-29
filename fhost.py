@@ -32,41 +32,44 @@ import requests
 from short_url import UrlEncoder
 from validators import url as url_valid
 
-app = Flask(__name__)
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app = Flask(__name__, instance_relative_config=True)
+app.config.update(
+    SQLALCHEMY_TRACK_MODIFICATIONS = False,
+    PREFERRED_URL_SCHEME = "https", # nginx users: make sure to have 'uwsgi_param UWSGI_SCHEME $scheme;' in your config
+    MAX_CONTENT_LENGTH = 256 * 1024 * 1024,
+    MAX_URL_LENGTH = 4096,
+    USE_X_SENDFILE = False,
+    FHOST_USE_X_ACCEL_REDIRECT = True, # expect nginx by default
+    FHOST_STORAGE_PATH = "up",
+    FHOST_MAX_EXT_LENGTH = 9,
+    FHOST_EXT_OVERRIDE = {
+        "audio/flac" : ".flac",
+        "image/gif" : ".gif",
+        "image/jpeg" : ".jpg",
+        "image/png" : ".png",
+        "image/svg+xml" : ".svg",
+        "video/webm" : ".webm",
+        "video/x-matroska" : ".mkv",
+        "application/octet-stream" : ".bin",
+        "text/plain" : ".log",
+        "text/plain" : ".txt",
+        "text/x-diff" : ".diff",
+    },
+    FHOST_MIME_BLACKLIST = [
+        "application/x-dosexec",
+        "application/java-archive",
+        "application/java-vm"
+    ],
+    FHOST_UPLOAD_BLACKLIST = None,
+    NSFW_DETECT = False,
+    NSFW_THRESHOLD = 0.608,
+    URL_ALPHABET = "DEQhd2uFteibPwq0SWBInTpA_jcZL5GKz3YCR14Ulk87Jors9vNHgfaOmMXy6Vx-",
+)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite" # "postgresql://0x0@/0x0"
-app.config["PREFERRED_URL_SCHEME"] = "https" # nginx users: make sure to have 'uwsgi_param UWSGI_SCHEME $scheme;' in your config
-app.config["MAX_CONTENT_LENGTH"] = 256 * 1024 * 1024
-app.config["MAX_URL_LENGTH"] = 4096
-app.config["FHOST_STORAGE_PATH"] = "up"
-app.config["FHOST_USE_X_ACCEL_REDIRECT"] = True # expect nginx by default
-app.config["USE_X_SENDFILE"] = False
-app.config["FHOST_EXT_OVERRIDE"] = {
-    "audio/flac" : ".flac",
-    "image/gif" : ".gif",
-    "image/jpeg" : ".jpg",
-    "image/png" : ".png",
-    "image/svg+xml" : ".svg",
-    "video/webm" : ".webm",
-    "video/x-matroska" : ".mkv",
-    "application/octet-stream" : ".bin",
-    "text/plain" : ".log",
-    "text/plain" : ".txt",
-    "text/x-diff" : ".diff",
-}
+app.config.from_pyfile("config.py")
 
-# default blacklist to avoid AV mafia extortion
-app.config["FHOST_MIME_BLACKLIST"] = [
-    "application/x-dosexec",
-    "application/java-archive",
-    "application/java-vm"
-]
-
-app.config["FHOST_UPLOAD_BLACKLIST"] = "tornodes.txt"
-
-app.config["NSFW_DETECT"] = False
-app.config["NSFW_THRESHOLD"] = 0.608
+if app.config["DEBUG"]:
+    app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
 
 if app.config["NSFW_DETECT"]:
     from nsfw_detect import NSFWDetector
@@ -88,7 +91,7 @@ migrate = Migrate(app, db)
 manager = Manager(app)
 manager.add_command("db", MigrateCommand)
 
-su = UrlEncoder(alphabet='DEQhd2uFteibPwq0SWBInTpA_jcZL5GKz3YCR14Ulk87Jors9vNHgfaOmMXy6Vx-', block_size=16)
+su = UrlEncoder(alphabet=app.config["URL_ALPHABET"], block_size=16)
 
 class URL(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -169,8 +172,8 @@ def shorten(url):
         return u.geturl()
 
 def in_upload_bl(addr):
-    if os.path.isfile(app.config["FHOST_UPLOAD_BLACKLIST"]):
-        with open(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
+    if app.config["FHOST_UPLOAD_BLACKLIST"]:
+        with app.open_instance_resource(app.config["FHOST_UPLOAD_BLACKLIST"]) as bl:
             check = addr.lstrip("::ffff:")
             for l in bl.readlines():
                 if not l.startswith("#"):
