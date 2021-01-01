@@ -10,6 +10,9 @@ Configuration
 To change settings, modify ``instance/config.py``. For more information on
 instance configuration, see `the Flask documentation <https://flask.palletsprojects.com/en/2.0.x/config/#instance-folders>`_.
 
+To customize the home and error pages, simply create a ``templates`` directory
+in your instance directory and copy any templates you want to modify there.
+
 If you are running nginx, you should use the ``X-Accel-Redirect`` header.
 To make it work, include this in your nginx config’s ``server`` block::
 

@@ -23,6 +23,7 @@ from flask import Flask, abort, make_response, redirect, request, send_from_dire
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from jinja2.exceptions import *
+from jinja2 import ChoiceLoader, FileSystemLoader
 from hashlib import sha256
 from magic import Magic
 from mimetypes import guess_extension
@@ -68,6 +69,10 @@ app.config.update(
 
 if not app.config["TESTING"]:
     app.config.from_pyfile("config.py")
+    app.jinja_loader = ChoiceLoader([
+        FileSystemLoader(str(Path(app.instance_path) / "templates")),
+        app.jinja_loader
+    ])
 
     if app.config["DEBUG"]:
         app.config["FHOST_USE_X_ACCEL_REDIRECT"] = False
