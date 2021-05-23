@@ -1,13 +1,11 @@
 alembic
+Jinja2
+Flask
 numpy
 SQLAlchemy
-tqdm
-Flask_SQLAlchemy
-Flask
-humanize
 requests
+Flask_SQLAlchemy
+validators
 flask_migrate
-flask_script
 python_magic
 short_url
-validators
