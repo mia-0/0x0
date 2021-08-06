@@ -18,7 +18,10 @@
     and limitations under the License.
 """
 
-import os, sys, time, datetime
+import os
+import sys
+import time
+import datetime
 from fhost import app
 
 os.chdir(os.path.dirname(sys.argv[0]))
@@ -33,7 +36,7 @@ maxd = 365
 for f in files:
     stat = os.stat(f)
     systime = time.time()
-    age = datetime.timedelta(seconds = systime - stat.st_mtime).days
+    age = datetime.timedelta(seconds=(systime - stat.st_mtime)).days
 
     maxage = mind + (-maxd + mind) * (stat.st_size / maxs - 1) ** 3
 
