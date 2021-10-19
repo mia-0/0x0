@@ -98,7 +98,7 @@ class URL(db.Model):
         self.url = url
 
     def getname(self):
-        return su.enbase(self.id, 1)
+        return su.enbase(self.id)
 
     def geturl(self):
         return url_for("get", path=self.getname(), _external=True) + "\n"
@@ -129,7 +129,7 @@ class File(db.Model):
         self.addr = addr
 
     def getname(self):
-        return u"{0}{1}".format(su.enbase(self.id, 1), self.ext)
+        return u"{0}{1}".format(su.enbase(self.id), self.ext)
 
     def geturl(self):
         n = self.getname()
@@ -207,16 +207,17 @@ class File(db.Model):
 
 
 class UrlEncoder(object):
-    def __init__(self,alphabet):
+    def __init__(self,alphabet, min_length):
         self.alphabet = alphabet
+        self.min_length = min_length
 
-    def enbase(self, x, min_length):
+    def enbase(self, x):
         n = len(self.alphabet)
         str = ""
         while x > 0:
             str = (self.alphabet[int(x % n)]) + str
             x = int(x // n)
-        padding = self.alphabet[0] * (min_length - len(str))
+        padding = self.alphabet[0] * (self.min_length - len(str))
         return '%s%s' % (padding, str)
 
     def debase(self, x):
@@ -226,7 +227,7 @@ class UrlEncoder(object):
             result += self.alphabet.index(c) * (n ** i)
         return result
 
-su = UrlEncoder(alphabet=app.config["URL_ALPHABET"])
+su = UrlEncoder(alphabet=app.config["URL_ALPHABET"], min_length=1)
 
 def fhost_url(scheme=None):
     if not scheme:
