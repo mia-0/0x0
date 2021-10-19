@@ -28,6 +28,7 @@ from hashlib import sha256
 from magic import Magic
 from mimetypes import guess_extension
 import sys
+import re
 import requests
 from short_url import UrlEncoder
 from validators import url as url_valid
@@ -207,14 +208,12 @@ class File(db.Model):
         db.session.commit()
         return f
 
-def fhost_url(scheme=None):
-    if not scheme:
-        return url_for(".fhost", _external=True).rstrip("/")
-    else:
-        return url_for(".fhost", _external=True, _scheme=scheme).rstrip("/")
-
 def is_fhost_url(url):
-    return url.startswith(fhost_url()) or url.startswith(fhost_url("https"))
+    fhost_url = re.sub(r'https?://', '', url_for(".fhost", _external=True)).rstrip("/")
+    if re.match(rf'https?://{fhost_url}.*', url):
+        return True
+
+    return False
 
 def shorten(url):
     if len(url) > app.config["MAX_URL_LENGTH"]:
