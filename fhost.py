@@ -29,7 +29,6 @@ from magic import Magic
 from mimetypes import guess_extension
 import sys
 import requests
-from short_url import UrlEncoder
 from validators import url as url_valid
 from pathlib import Path
 
@@ -90,8 +89,6 @@ Please install python-magic.""")
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-su = UrlEncoder(alphabet=app.config["URL_ALPHABET"], block_size=16)
 
 class URL(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -206,6 +203,30 @@ class File(db.Model):
         db.session.add(f)
         db.session.commit()
         return f
+
+
+
+class UrlEncoder(object):
+    def __init__(self,alphabet):
+        self.alphabet = alphabet
+
+    def enbase(self, x, min_length):
+        n = len(self.alphabet)
+        str = ""
+        while x > 0:
+            str = (self.alphabet[int(x % n)]) + str
+            x = int(x // n)
+        padding = self.alphabet[0] * (min_length - len(str))
+        return '%s%s' % (padding, str)
+
+    def debase(self, x):
+        n = len(self.alphabet)
+        result = 0
+        for i, c in enumerate(reversed(x)):
+            result += self.alphabet.index(c) * (n ** i)
+        return result
+
+su = UrlEncoder(alphabet=app.config["URL_ALPHABET"])
 
 def fhost_url(scheme=None):
     if not scheme:
