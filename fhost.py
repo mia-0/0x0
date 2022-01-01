@@ -162,7 +162,7 @@ class File(db.Model):
 
         def get_ext(mime):
             ext = "".join(Path(file_.filename).suffixes[-2:])
-            gmime = mime[:mime.find(";")]
+            gmime = mime.split(";")[0]
             guess = guess_extension(gmime)
 
             app.logger.debug(f"extension - specified: '{ext}' - detected: '{guess}'")
