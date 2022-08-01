@@ -251,7 +251,7 @@ def shorten(url):
 
 def in_upload_bl(addr):
     if app.config["FHOST_UPLOAD_BLACKLIST"]:
-        with app.open_instance_resource(app.config["FHOST_UPLOAD_BLACKLIST"]) as bl:
+        with app.open_instance_resource(app.config["FHOST_UPLOAD_BLACKLIST"], "r") as bl:
             check = addr.lstrip("::ffff:")
             for l in bl.readlines():
                 if not l.startswith("#"):
