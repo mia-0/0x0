@@ -140,7 +140,7 @@ class File(db.Model):
             return url_for("get", path=n, _external=True) + "\n"
 
     def store(file_, addr):
-        data = file_.stream.read()
+        data = file_.read()
         digest = sha256(data).hexdigest()
 
         def get_mime():
@@ -192,8 +192,8 @@ class File(db.Model):
         p = storage / digest
 
         if not p.is_file():
-            file_.stream.seek(0)
-            file_.save(p)
+            with open(p, "wb") as of:
+                of.write(data)
         else:
             p.touch()
 
@@ -287,7 +287,7 @@ def store_url(url, addr):
             def urlfile(**kwargs):
                 return type('',(),kwargs)()
 
-            f = urlfile(stream=r.raw, content_type=r.headers["content-type"], filename="")
+            f = urlfile(read=r.raw.read, content_type=r.headers["content-type"], filename="")
 
             return store_file(f, addr)
         else:
