@@ -42,3 +42,17 @@ the following:
 
 * Caffe Python module (built for Python 3)
 * ``ffmpegthumbnailer`` executable in ``$PATH``
+
+
+Network Security Considerations
+-------------------------------
+
+Keep in mind that 0x0 can fetch files from URLs. This includes your local
+network! You should take precautions so that this feature cannot be abused.
+0x0 does not (yet) have a way to filter remote URLs, but on Linux, you can
+use firewall rules and/or namespaces. This is less error-prone anyway.
+
+For instance, if you are using the excellent `FireHOL <https://firehol.org/>`_,
+it’s very easy to create a group on your system and use it as a condition
+in your firewall rules. You would then run the application server under that
+group.
