@@ -30,8 +30,10 @@ where ``/up`` is whatever you’ve configured as ``FHOST_STORAGE_PATH``.
 
 For all other servers, set ``FHOST_USE_X_ACCEL_REDIRECT`` to ``False`` and
 ``USE_X_SENDFILE`` to ``True``, assuming your server supports this.
-Otherwise, Flask will serve the file with chunked encoding, which sucks and
-should be avoided at all costs.
+Otherwise, Flask will serve the file with chunked encoding, which has several
+downsides, one of them being that range requests will not work. This is a
+problem for example when streaming media files: It won’t be possible to seek,
+and some ISOBMFF (MP4) files will not play at all.
 
 To make files expire, simply create a cronjob that runs ``cleanup.py`` every
 now and then.
