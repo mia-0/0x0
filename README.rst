@@ -7,8 +7,14 @@ This is a no-bullshit file hosting and URL shortening service that also runs
 Configuration
 -------------
 
-To change settings, modify ``instance/config.py``. For more information on
-instance configuration, see `the Flask documentation <https://flask.palletsprojects.com/en/2.0.x/config/#instance-folders>`_.
+To configure 0x0, create ``instance/config.py``.
+The defaults are at the start of ``fhost.py``. To change them,
+add them to ``instance/config.py``— for example::
+
+    SQLALCHEMY_DATABASE_URI = "sqlite:///some/path/db.sqlite"
+
+For more information on instance configuration, see
+`the Flask documentation <https://flask.palletsprojects.com/en/2.0.x/config/#instance-folders>`_.
 
 To customize the home and error pages, simply create a ``templates`` directory
 in your instance directory and copy any templates you want to modify there.
