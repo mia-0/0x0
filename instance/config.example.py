@@ -45,6 +45,19 @@ MAX_CONTENT_LENGTH = 256 * 1024 * 1024 # Default: 256MiB
 MAX_URL_LENGTH = 4096
 
 
+# The minimum and maximum amount of time we'll retain a file for
+#
+# Small files (nearing zero bytes) are stored for the longest possible expiration date,
+# while larger files (nearing MAX_CONTENT_LENGTH bytes) are stored for the shortest amount
+# of time.  Values between these two extremes are interpolated with an exponential curve,
+# like the one shown on the index page.
+#
+# All times are in milliseconds.  If you want all files to be stored for the same amount
+# of time, set these to the same value.
+FHOST_MIN_EXPIRATION = 30  * 24 * 60 * 60 * 1000
+FHOST_MAX_EXPIRATION = 365 * 24 * 60 * 60 * 1000
+
+
 # Use the X-SENDFILE header to speed up serving files w/ compatible webservers
 #
 # Some webservers can be configured use the X-Sendfile header to handle sending

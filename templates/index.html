@@ -11,6 +11,15 @@ Or you can shorten URLs:
 
 File URLs are valid for at least 30 days and up to a year (see below).
 Shortened URLs do not expire.
+
+Files can be set to expire sooner by adding an "expires" parameter (in hours)
+    curl -F'file=@yourfile.png' -F'expires=24' {{ fhost_url }}
+OR by setting "expires" to a timestamp in epoch milliseconds
+    curl -F'file=@yourfile.png' -F'expires=1681996320000' {{ fhost_url }}
+
+Expired files won't be removed immediately, but will be removed as part of
+the next purge.
+
 {% set max_size = config["MAX_CONTENT_LENGTH"]|filesizeformat(True) %}
 Maximum file size: {{ max_size }}
 Not allowed: {{ config["FHOST_MIME_BLACKLIST"]|join(", ") }}
@@ -22,7 +31,7 @@ FILE RETENTION PERIOD
 retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
 
    days
-    365 |  \\
+ {{'{: 6}'.format(config.get("FHOST_MAX_EXPIRATION", 31536000000)//86400000)}} |  \\
         |   \\
         |    \\
         |     \\
@@ -30,7 +39,7 @@ retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
         |       \\
         |        ..
         |          \\
-  197.5 | ----------..-------------------------------------------
+ {{'{: 6.1f}'.format((config.get("FHOST_MIN_EXPIRATION", 2592000000)/2 + config.get("FHOST_MAX_EXPIRATION", 31536000000)/2)/86400000)}} | ----------..-------------------------------------------
         |             ..
         |               \\
         |                ..
@@ -39,7 +48,7 @@ retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
         |                       ...
         |                          ....
         |                              ......
-     30 |                                    ....................
+ {{'{: 6}'.format(config.get("FHOST_MIN_EXPIRATION", 2592000000)//86400000)}} |                                    ....................
           0{{ ((config["MAX_CONTENT_LENGTH"]/2)|filesizeformat(True)).split(" ")[0].rjust(27) }}{{ max_size.split(" ")[0].rjust(27) }}
            {{ max_size.split(" ")[1].rjust(54) }}
 </pre>
