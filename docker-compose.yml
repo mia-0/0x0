@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+
+  file_hosting:
+    image: vector450/0x0:latest
+    container_name: '0x0'
+    restart: unless-stopped
+    ports:
+     - 5000:5000
