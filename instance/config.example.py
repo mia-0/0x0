@@ -86,7 +86,8 @@ FHOST_MAX_EXT_LENGTH = 9
 # When a user uploads a file with no file extension, we try to find an extension that
 # works for that file.  This configuration option is the first thing that we check.  If
 # the type of a file without an extension is in this dict, then it'll be used as the file
-# extension for that file.
+# extension for that file. Otherwise, we try to pick something sensible from libmagic's
+# database.
 #
 # For example, if the user uploads "myfile" with no extension, and the file is a jpeg
 # image, the file will get a URL like "eAa.jpg"
