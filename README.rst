@@ -35,8 +35,14 @@ downsides, one of them being that range requests will not work. This is a
 problem for example when streaming media files: It won’t be possible to seek,
 and some ISOBMFF (MP4) files will not play at all.
 
-To make files expire, simply create a cronjob that runs ``FLASK_APP=fhost
-flask prune`` every now and then.
+To make files expire, simply run ``FLASK_APP=fhost flask prune`` every
+now and then. You can use the provided systemd unit files for this::
+
+    0x0-prune.service
+    0x0-prune.timer
+
+Make sure to edit them to match your system configuration. In particular,
+set the user and paths in ``0x0-prune.service``.
 
 Before running the service for the first time, run ``FLASK_APP=fhost flask db upgrade``.
 

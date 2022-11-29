@@ -1,0 +1,22 @@
+[Unit]
+Description=Prune 0x0 files
+After=remote-fs.target
+
+[Service]
+Type=oneshot
+User=nullptr
+WorkingDirectory=/path/to/0x0
+BindPaths=/path/to/0x0
+
+Environment=FLASK_APP=fhost
+ExecStart=/usr/bin/flask prune
+ProtectProc=noaccess
+ProtectSystem=strict
+ProtectHome=tmpfs
+PrivateTmp=true
+PrivateUsers=true
+ProtectKernelLogs=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Prune 0x0 files
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
