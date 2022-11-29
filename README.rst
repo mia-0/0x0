@@ -56,7 +56,7 @@ neural network model. This works for images and video files and requires
 the following:
 
 * Caffe Python module (built for Python 3)
-* ``ffmpegthumbnailer`` executable in ``$PATH``
+* `PyAV <https://github.com/PyAV-Org/PyAV>`_
 
 
 Network Security Considerations
