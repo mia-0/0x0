@@ -44,7 +44,8 @@ now and then. You can use the provided systemd unit files for this::
 Make sure to edit them to match your system configuration. In particular,
 set the user and paths in ``0x0-prune.service``.
 
-Before running the service for the first time, run ``FLASK_APP=fhost flask db upgrade``.
+Before running the service for the first time and every time you update it
+from this git repository, run ``FLASK_APP=fhost flask db upgrade``.
 
 
 NSFW Detection
