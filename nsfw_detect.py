@@ -77,10 +77,10 @@ class NSFWDetector:
                 "-cpng", "-i", fpath
             ], stdout=PIPE, stderr=DEVNULL, check=True)
             image_data = ff.stdout
+
+            scores = self._compute(image_data)
         except:
             return -1.0
-
-        scores = self._compute(image_data)
 
         return scores[1]
 
