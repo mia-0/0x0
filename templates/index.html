@@ -20,6 +20,11 @@ OR by setting "expires" to a timestamp in epoch milliseconds
 Expired files won't be removed immediately, but will be removed as part of
 the next purge.
 
+Whenever a file that does not already exist or has expired is uploaded,
+the HTTP response header includes an X-Token field. You can use this
+to delete the file immediately:
+    curl -Ftoken=token_here -Fdelete= {{ fhost_url }}/abc.txt
+
 {% set max_size = config["MAX_CONTENT_LENGTH"]|filesizeformat(True) %}
 Maximum file size: {{ max_size }}
 Not allowed: {{ config["FHOST_MIME_BLACKLIST"]|join(", ") }}

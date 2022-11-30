@@ -34,6 +34,7 @@ import sys
 import time
 import typing
 import requests
+import secrets
 from validators import url as url_valid
 from pathlib import Path
 
@@ -127,13 +128,15 @@ class File(db.Model):
     removed = db.Column(db.Boolean, default=False)
     nsfw_score = db.Column(db.Float)
     expiration = db.Column(db.BigInteger)
+    mgmt_token = db.Column(db.String)
 
-    def __init__(self, sha256, ext, mime, addr, expiration):
+    def __init__(self, sha256, ext, mime, addr, expiration, mgmt_token):
         self.sha256 = sha256
         self.ext = ext
         self.mime = mime
         self.addr = addr
         self.expiration = expiration
+        self.mgmt_token = mgmt_token
 
     def getname(self):
         return u"{0}{1}".format(su.enbase(self.id), self.ext)
@@ -145,6 +148,15 @@ class File(db.Model):
             return url_for("get", path=n, _external=True, _anchor="nsfw") + "\n"
         else:
             return url_for("get", path=n, _external=True) + "\n"
+
+    def getpath(self) -> Path:
+        return Path(app.config["FHOST_STORAGE_PATH"]) / self.sha256
+
+    def delete(self, permanent=False):
+        self.expiration = None
+        self.mgmt_token = None
+        self.removed = permanent
+        self.getpath().unlink(missing_ok=True)
 
     """
     requested_expiration can be:
@@ -218,6 +230,7 @@ class File(db.Model):
             else:
                 # Treat the requested expiration time as a timestamp in epoch millis
                 return min(this_files_max_expiration, requested_expiration);
+        isnew = True
 
         f = File.query.filter_by(sha256=digest).first()
         if f:
@@ -228,14 +241,19 @@ class File(db.Model):
             if f.expiration is None:
                 # The file has expired, so give it a new expiration date
                 f.expiration = get_expiration()
+
+                # Also generate a new management token
+                f.mgmt_token = secrets.token_urlsafe()
             else:
                 # The file already exists, update the expiration if needed
                 f.expiration = max(f.expiration, get_expiration())
+                isnew = False
         else:
             mime = get_mime()
             ext = get_ext(mime)
             expiration = get_expiration()
-            f = File(digest, ext, mime, addr, expiration)
+            mgmt_token = secrets.token_urlsafe()
+            f = File(digest, ext, mime, addr, expiration, mgmt_token)
 
         f.addr = addr
 
@@ -252,8 +270,7 @@ class File(db.Model):
 
         db.session.add(f)
         db.session.commit()
-        return f
-
+        return f, isnew
 
 
 class UrlEncoder(object):
@@ -323,9 +340,14 @@ def store_file(f, requested_expiration:  typing.Optional[int], addr):
     if in_upload_bl(addr):
         return "Your host is blocked from uploading files.\n", 451
 
-    sf = File.store(f, requested_expiration, addr)
+    sf, isnew = File.store(f, requested_expiration, addr)
 
-    return sf.geturl()
+    response = make_response(sf.geturl())
+
+    if isnew:
+        response.headers["X-Token"] = sf.mgmt_token
+
+    return response
 
 def store_url(url, addr):
     if is_fhost_url(url):
@@ -354,7 +376,20 @@ def store_url(url, addr):
     else:
         abort(411)
 
-@app.route("/<path:path>")
+def manage_file(f):
+    try:
+        assert(request.form["token"] == f.mgmt_token)
+    except:
+        abort(401)
+
+    if "delete" in request.form:
+        f.delete()
+        db.session.commit()
+        return ""
+
+    abort(400)
+
+@app.route("/<path:path>", methods=["GET", "POST"])
 def get(path):
     path = Path(path.split("/", 1)[0])
     sufs = "".join(path.suffixes[-2:])
@@ -368,10 +403,13 @@ def get(path):
             if f.removed:
                 abort(451)
 
-            fpath = Path(app.config["FHOST_STORAGE_PATH"]) / f.sha256
+            fpath = f.getpath()
 
             if not fpath.is_file():
                 abort(404)
+
+            if request.method == "POST":
+                return manage_file(f)
 
             if app.config["FHOST_USE_X_ACCEL_REDIRECT"]:
                 response = make_response()
@@ -382,6 +420,9 @@ def get(path):
             else:
                 return send_from_directory(app.config["FHOST_STORAGE_PATH"], f.sha256, mimetype = f.mime)
     else:
+        if request.method == "POST":
+            abort(405)
+
         u = URL.query.get(id)
 
         if u:
@@ -428,6 +469,7 @@ Disallow: /
 """
 
 @app.errorhandler(400)
+@app.errorhandler(401)
 @app.errorhandler(404)
 @app.errorhandler(411)
 @app.errorhandler(413)
@@ -436,7 +478,7 @@ Disallow: /
 @app.errorhandler(451)
 def ehandler(e):
     try:
-        return render_template(f"{e.code}.html", id=id), e.code
+        return render_template(f"{e.code}.html", id=id, request=request), e.code
     except TemplateNotFound:
         return "Segmentation fault\n", e.code
 
