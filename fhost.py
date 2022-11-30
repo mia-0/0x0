@@ -344,6 +344,7 @@ def store_file(f, requested_expiration:  typing.Optional[int], addr):
     sf, isnew = File.store(f, requested_expiration, addr)
 
     response = make_response(sf.geturl())
+    response.headers["X-Expires"] = sf.expiration
 
     if isnew:
         response.headers["X-Token"] = sf.mgmt_token
@@ -427,9 +428,11 @@ def get(path):
                 response.headers["Content-Type"] = f.mime
                 response.headers["Content-Length"] = fpath.stat().st_size
                 response.headers["X-Accel-Redirect"] = "/" + str(fpath)
-                return response
             else:
-                return send_from_directory(app.config["FHOST_STORAGE_PATH"], f.sha256, mimetype = f.mime)
+                response = send_from_directory(app.config["FHOST_STORAGE_PATH"], f.sha256, mimetype = f.mime)
+
+            response.headers["X-Expires"] = f.expiration
+            return response
     else:
         if request.method == "POST":
             abort(405)
