@@ -13,17 +13,21 @@ File URLs are valid for at least 30 days and up to a year (see below).
 Shortened URLs do not expire.
 
 Files can be set to expire sooner by adding an "expires" parameter (in hours)
-    curl -F'file=@yourfile.png' -F'expires=24' {{ fhost_url }}
+    curl -F'file=@yourfile.png' -Fexpires=24 {{ fhost_url }}
 OR by setting "expires" to a timestamp in epoch milliseconds
-    curl -F'file=@yourfile.png' -F'expires=1681996320000' {{ fhost_url }}
+    curl -F'file=@yourfile.png' -Fexpires=1681996320000 {{ fhost_url }}
 
 Expired files won't be removed immediately, but will be removed as part of
 the next purge.
 
 Whenever a file that does not already exist or has expired is uploaded,
 the HTTP response header includes an X-Token field. You can use this
-to delete the file immediately:
+to perform management operations on the file.
+
+To delete the file immediately:
     curl -Ftoken=token_here -Fdelete= {{ fhost_url }}/abc.txt
+To change the expiration date (see above):
+    curl -Ftoken=token_here -Fexpires=3 {{ fhost_url }}/abc.txt
 
 {% set max_size = config["MAX_CONTENT_LENGTH"]|filesizeformat(True) %}
 Maximum file size: {{ max_size }}

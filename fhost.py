@@ -158,6 +158,34 @@ class File(db.Model):
         self.removed = permanent
         self.getpath().unlink(missing_ok=True)
 
+    # Returns the epoch millisecond that a file should expire
+    #
+    # Uses the expiration time provided by the user (requested_expiration)
+    # upper-bounded by an algorithm that computes the size based on the size of the
+    # file.
+    #
+    # That is, all files are assigned a computed expiration, which can voluntarily
+    # shortened by the user either by providing a timestamp in epoch millis or a
+    # duration in hours.
+    def get_expiration(requested_expiration, size) -> int:
+        current_epoch_millis = time.time() * 1000;
+
+        # Maximum lifetime of the file in milliseconds
+        this_files_max_lifespan = get_max_lifespan(size);
+
+        # The latest allowed expiration date for this file, in epoch millis
+        this_files_max_expiration = this_files_max_lifespan + 1000 * time.time();
+
+        if requested_expiration is None:
+            return this_files_max_expiration
+        elif requested_expiration < 1650460320000:
+            # Treat the requested expiration time as a duration in hours
+            requested_expiration_ms = requested_expiration * 60 * 60 * 1000
+            return min(this_files_max_expiration, current_epoch_millis + requested_expiration_ms)
+        else:
+            # Treat the requested expiration time as a timestamp in epoch millis
+            return min(this_files_max_expiration, requested_expiration)
+
     """
     requested_expiration can be:
         - None, to use the longest allowed file lifespan
@@ -203,33 +231,7 @@ class File(db.Model):
 
             return ext[:app.config["FHOST_MAX_EXT_LENGTH"]] or ".bin"
 
-        # Returns the epoch millisecond that this file should expire
-        #
-        # Uses the expiration time provided by the user (requested_expiration)
-        # upper-bounded by an algorithm that computes the size based on the size of the
-        # file.
-        #
-        # That is, all files are assigned a computed expiration, which can voluntarily
-        # shortened by the user either by providing a timestamp in epoch millis or a
-        # duration in hours.
-        def get_expiration() -> int:
-            current_epoch_millis = time.time() * 1000;
-
-            # Maximum lifetime of the file in milliseconds
-            this_files_max_lifespan = get_max_lifespan(len(data));
-
-            # The latest allowed expiration date for this file, in epoch millis
-            this_files_max_expiration = this_files_max_lifespan + 1000 * time.time();
-
-            if requested_expiration is None:
-                return this_files_max_expiration
-            elif requested_expiration < 1650460320000:
-                # Treat the requested expiration time as a duration in hours
-                requested_expiration_ms = requested_expiration * 60 * 60 * 1000
-                return min(this_files_max_expiration, current_epoch_millis + requested_expiration_ms)
-            else:
-                # Treat the requested expiration time as a timestamp in epoch millis
-                return min(this_files_max_expiration, requested_expiration);
+        expiration = File.get_expiration(requested_expiration, len(data))
         isnew = True
 
         f = File.query.filter_by(sha256=digest).first()
@@ -240,18 +242,17 @@ class File(db.Model):
                 abort(451)
             if f.expiration is None:
                 # The file has expired, so give it a new expiration date
-                f.expiration = get_expiration()
+                f.expiration = expiration
 
                 # Also generate a new management token
                 f.mgmt_token = secrets.token_urlsafe()
             else:
                 # The file already exists, update the expiration if needed
-                f.expiration = max(f.expiration, get_expiration())
+                f.expiration = max(f.expiration, expiration)
                 isnew = False
         else:
             mime = get_mime()
             ext = get_ext(mime)
-            expiration = get_expiration()
             mgmt_token = secrets.token_urlsafe()
             f = File(digest, ext, mime, addr, expiration, mgmt_token)
 
@@ -386,6 +387,16 @@ def manage_file(f):
         f.delete()
         db.session.commit()
         return ""
+    if "expires" in request.form:
+        try:
+            requested_expiration = int(request.form["expires"])
+        except ValueError:
+            abort(400)
+
+        fsize = f.getpath().stat().st_size
+        f.expiration = File.get_expiration(requested_expiration, fsize)
+        db.session.commit()
+        return "", 202
 
     abort(400)
 
