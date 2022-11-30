@@ -36,17 +36,17 @@ FILE RETENTION PERIOD
 retention = min_age + (-max_age + min_age) * pow((file_size / max_size - 1), 3)
 
    days
- {{'{: 6}'.format(config.get("FHOST_MAX_EXPIRATION", 31536000000)//86400000)}} |  \\
-        |   \\
-        |    \\
-        |     \\
-        |      \\
-        |       \\
+ {{'{: 6}'.format(config.get("FHOST_MAX_EXPIRATION", 31536000000)//86400000)}} |  \
+        |   \
+        |    \
+        |     \
+        |      \
+        |       \
         |        ..
-        |          \\
+        |          \
  {{'{: 6.1f}'.format((config.get("FHOST_MIN_EXPIRATION", 2592000000)/2 + config.get("FHOST_MAX_EXPIRATION", 31536000000)/2)/86400000)}} | ----------..-------------------------------------------
         |             ..
-        |               \\
+        |               \
         |                ..
         |                  ...
         |                     ..
