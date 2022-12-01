@@ -12,6 +12,9 @@ If you don't want the resulting URL to be easy to guess:
 Or you can shorten URLs:
     curl -F'shorten=http://example.com/some/long/url' {{ fhost_url }}
 
+It is possible to append your own file name to the URL:
+    {{ fhost_url }}/aaa.jpg/image.jpeg
+
 File URLs are valid for at least 30 days and up to a year (see below).
 Shortened URLs do not expire.
 
