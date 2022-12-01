@@ -218,6 +218,8 @@ class File(db.Model):
 
         def get_ext(mime):
             ext = "".join(Path(file_.filename).suffixes[-2:])
+            if len(ext) > app.config["FHOST_MAX_EXT_LENGTH"]:
+                ext = Path(file_.filename).suffixes[-1]
             gmime = mime.split(";")[0]
             guess = guess_extension(gmime)
 
