@@ -408,6 +408,10 @@ def get(path):
     path = Path(path.split("/", 1)[0])
     sufs = "".join(path.suffixes[-2:])
     name = path.name[:-len(sufs) or None]
+
+    if "." in name:
+        abort(404)
+
     id = su.debase(name)
 
     if sufs:
