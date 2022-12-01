@@ -94,6 +94,13 @@ FHOST_STORAGE_PATH = "up"
 FHOST_MAX_EXT_LENGTH = 9
 
 
+# The number of bytes used for "secret" URLs
+#
+# When a user uploads a file with the "secret" option, 0x0 generates a string
+# from this many bytes of random data. It is base64-encoded, so on average
+# each byte results in approximately 1.3 characters.
+FHOST_SECRET_BYTES = 16
+
 # A list of filetypes to use when the uploader doesn't specify one
 #
 # When a user uploads a file with no file extension, we try to find an extension that

@@ -48,6 +48,7 @@ app.config.update(
     FHOST_USE_X_ACCEL_REDIRECT = True, # expect nginx by default
     FHOST_STORAGE_PATH = "up",
     FHOST_MAX_EXT_LENGTH = 9,
+    FHOST_SECRET_BYTES = 16,
     FHOST_EXT_OVERRIDE = {
         "audio/flac" : ".flac",
         "image/gif" : ".gif",
@@ -129,6 +130,7 @@ class File(db.Model):
     nsfw_score = db.Column(db.Float)
     expiration = db.Column(db.BigInteger)
     mgmt_token = db.Column(db.String)
+    secret = db.Column(db.String)
 
     def __init__(self, sha256, ext, mime, addr, expiration, mgmt_token):
         self.sha256 = sha256
@@ -145,9 +147,9 @@ class File(db.Model):
         n = self.getname()
 
         if self.nsfw_score and self.nsfw_score > app.config["NSFW_THRESHOLD"]:
-            return url_for("get", path=n, _external=True, _anchor="nsfw") + "\n"
+            return url_for("get", path=n, secret=self.secret, _external=True, _anchor="nsfw") + "\n"
         else:
-            return url_for("get", path=n, _external=True) + "\n"
+            return url_for("get", path=n, secret=self.secret, _external=True) + "\n"
 
     def getpath(self) -> Path:
         return Path(app.config["FHOST_STORAGE_PATH"]) / self.sha256
@@ -195,7 +197,7 @@ class File(db.Model):
     Any value greater that the longest allowed file lifespan will be rounded down to that
     value.
     """
-    def store(file_, requested_expiration: typing.Optional[int], addr):
+    def store(file_, requested_expiration: typing.Optional[int], addr, secret: bool):
         data = file_.read()
         digest = sha256(data).hexdigest()
 
@@ -259,6 +261,11 @@ class File(db.Model):
             f = File(digest, ext, mime, addr, expiration, mgmt_token)
 
         f.addr = addr
+
+        if isnew:
+            f.secret = None
+            if secret:
+                f.secret = secrets.token_urlsafe(app.config["FHOST_SECRET_BYTES"])
 
         storage = Path(app.config["FHOST_STORAGE_PATH"])
         storage.mkdir(parents=True, exist_ok=True)
@@ -339,11 +346,11 @@ requested_expiration can be:
 Any value greater that the longest allowed file lifespan will be rounded down to that
 value.
 """
-def store_file(f, requested_expiration:  typing.Optional[int], addr):
+def store_file(f, requested_expiration:  typing.Optional[int], addr, secret: bool):
     if in_upload_bl(addr):
         return "Your host is blocked from uploading files.\n", 451
 
-    sf, isnew = File.store(f, requested_expiration, addr)
+    sf, isnew = File.store(f, requested_expiration, addr, secret)
 
     response = make_response(sf.geturl())
     response.headers["X-Expires"] = sf.expiration
@@ -353,7 +360,7 @@ def store_file(f, requested_expiration:  typing.Optional[int], addr):
 
     return response
 
-def store_url(url, addr):
+def store_url(url, addr, secret: bool):
     if is_fhost_url(url):
         abort(400)
 
@@ -374,7 +381,7 @@ def store_url(url, addr):
 
             f = urlfile(read=r.raw.read, content_type=r.headers["content-type"], filename="")
 
-            return store_file(f, None, addr)
+            return store_file(f, None, addr, secret)
         else:
             abort(413)
     else:
@@ -404,10 +411,11 @@ def manage_file(f):
     abort(400)
 
 @app.route("/<path:path>", methods=["GET", "POST"])
-def get(path):
-    path = Path(path.split("/", 1)[0])
-    sufs = "".join(path.suffixes[-2:])
-    name = path.name[:-len(sufs) or None]
+@app.route("/s/<secret>/<path:path>", methods=["GET", "POST"])
+def get(path, secret=None):
+    p = Path(path.split("/", 1)[0])
+    sufs = "".join(p.suffixes[-2:])
+    name = p.name[:-len(sufs) or None]
 
     if "." in name:
         abort(404)
@@ -416,6 +424,8 @@ def get(path):
 
     if sufs:
         f = File.query.get(id)
+        if f.secret != secret:
+            abort(404)
 
         if f and f.ext == sufs:
             if f.removed:
@@ -443,6 +453,9 @@ def get(path):
         if request.method == "POST":
             abort(405)
 
+        if "/" in path:
+            abort(404)
+
         u = URL.query.get(id)
 
         if u:
@@ -454,6 +467,7 @@ def get(path):
 def fhost():
     if request.method == "POST":
         sf = None
+        secret = "secret" in request.form
 
         if "file" in request.files:
             try:
@@ -461,7 +475,8 @@ def fhost():
                 return store_file(
                     request.files["file"],
                     int(request.form["expires"]),
-                    request.remote_addr
+                    request.remote_addr,
+                    secret
                 )
             except ValueError:
                 # The requested expiration date wasn't properly formed
@@ -471,10 +486,15 @@ def fhost():
                 return store_file(
                     request.files["file"],
                     None,
-                    request.remote_addr
+                    request.remote_addr,
+                    secret
                 )
         elif "url" in request.form:
-            return store_url(request.form["url"], request.remote_addr)
+            return store_url(
+                request.form["url"],
+                request.remote_addr,
+                secret
+            )
         elif "shorten" in request.form:
             return shorten(request.form["shorten"])
 

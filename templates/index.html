@@ -6,6 +6,9 @@ HTTP POST files here:
     curl -F'file=@yourfile.png' {{ fhost_url }}
 You can also POST remote URLs:
     curl -F'url=http://example.com/image.jpg' {{ fhost_url }}
+If you don't want the resulting URL to be easy to guess:
+    curl -F'file=@yourfile.png' -Fsecret= {{ fhost_url }}
+    curl -F'url=http://example.com/image.jpg' -Fsecret= {{ fhost_url }}
 Or you can shorten URLs:
     curl -F'shorten=http://example.com/some/long/url' {{ fhost_url }}
 
