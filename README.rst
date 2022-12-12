@@ -70,7 +70,8 @@ timer or cronjob to do this periodically. Examples are included::
     0x0-vscan.service
     0x0-vscan.timer
 
-Remember to adjust your size limits in clamd.conf!
+Remember to adjust your size limits in clamd.conf, including
+``StreamMaxLength``!
 
 This feature requires the `clamd module <https://pypi.org/project/clamd/>`_.
 

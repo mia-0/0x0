@@ -173,7 +173,7 @@ NSFW_THRESHOLD = 0.608
 # Since this can take a very long time on larger files, it is not done
 # immediately but every time you run the vscan command. It is recommended to
 # configure a systemd timer or cronjob to do this periodically.
-# Remember to adjust your size limits in clamd.conf!
+# Remember to adjust your size limits in clamd.conf, including StreamMaxLength!
 #
 # Example:
 # from clamd import ClamdUnixSocket
