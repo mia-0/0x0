@@ -1,0 +1,22 @@
+[Unit]
+Description=Scan 0x0 files with ClamAV
+After=remote-fs.target clamd.service
+
+[Service]
+Type=oneshot
+User=nullptr
+WorkingDirectory=/path/to/0x0
+BindPaths=/path/to/0x0
+
+Environment=FLASK_APP=fhost
+ExecStart=/usr/bin/flask vscan
+ProtectProc=noaccess
+ProtectSystem=strict
+ProtectHome=tmpfs
+PrivateTmp=true
+PrivateUsers=true
+ProtectKernelLogs=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Scan 0x0 files with ClamAV
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

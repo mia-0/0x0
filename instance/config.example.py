@@ -168,6 +168,37 @@ NSFW_DETECT = False
 NSFW_THRESHOLD = 0.608
 
 
+# If you want to scan files for viruses using ClamAV, specify the socket used
+# for connections here. You will need the clamd module.
+# Since this can take a very long time on larger files, it is not done
+# immediately but every time you run the vscan command. It is recommended to
+# configure a systemd timer or cronjob to do this periodically.
+# Remember to adjust your size limits in clamd.conf!
+#
+# Example:
+# from clamd import ClamdUnixSocket
+# VSCAN_SOCKET = ClamdUnixSocket("/run/clamav/clamd-socket")
+
+# This is the directory that files flagged as malicious are moved to.
+# Relative paths are resolved relative to the working directory
+# of the 0x0 process.
+VSCAN_QUARANTINE_PATH = "quarantine"
+
+# Since updated virus definitions might catch some files that were previously
+# reported as clean, you may want to rescan old files periodically.
+# Set this to a datetime.timedelta to specify the frequency, or None to
+# disable rescanning.
+from datetime import timedelta
+VSCAN_INTERVAL = timedelta(days=7)
+
+# Some files flagged by ClamAV are usually not malicious, especially if the
+# DetectPUA option is enabled in clamd.conf. This is a list of signatures
+# that will be ignored.
+VSCAN_IGNORE = [
+    "Eicar-Test-Signature",
+    "PUA.Win.Packer.XmMusicFile",
+]
+
 # A list of all characters which can appear in a URL
 #
 # If this list is too short, then URLs can very quickly become long.

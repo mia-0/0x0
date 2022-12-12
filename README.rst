@@ -59,6 +59,22 @@ the following:
 * `PyAV <https://github.com/PyAV-Org/PyAV>`_
 
 
+Virus Scanning
+--------------
+
+0x0 can scan its files with ClamAV’s daemon. As this can take a long time
+for larger files, this does not happen immediately but instead every time
+you run the ``vscan`` command. It is recommended to configure a systemd
+timer or cronjob to do this periodically. Examples are included::
+
+    0x0-vscan.service
+    0x0-vscan.timer
+
+Remember to adjust your size limits in clamd.conf!
+
+This feature requires the `clamd module <https://pypi.org/project/clamd/>`_.
+
+
 Network Security Considerations
 -------------------------------
 
