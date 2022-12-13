@@ -140,6 +140,7 @@ class File(db.Model):
     mgmt_token = db.Column(db.String)
     secret = db.Column(db.String)
     last_vscan = db.Column(db.DateTime)
+    size = db.Column(db.BigInteger)
 
     def __init__(self, sha256, ext, mime, addr, expiration, mgmt_token):
         self.sha256 = sha256
@@ -288,6 +289,8 @@ class File(db.Model):
             with open(p, "wb") as of:
                 of.write(data)
 
+        f.size = len(data)
+
         if not f.nsfw_score and app.config["NSFW_DETECT"]:
             f.nsfw_score = nsfw.detect(p)
 
@@ -416,8 +419,7 @@ def manage_file(f):
         except ValueError:
             abort(400)
 
-        fsize = f.getpath().stat().st_size
-        f.expiration = File.get_expiration(requested_expiration, fsize)
+        f.expiration = File.get_expiration(requested_expiration, f.size)
         db.session.commit()
         return "", 202
 
@@ -455,7 +457,7 @@ def get(path, secret=None):
             if app.config["FHOST_USE_X_ACCEL_REDIRECT"]:
                 response = make_response()
                 response.headers["Content-Type"] = f.mime
-                response.headers["Content-Length"] = fpath.stat().st_size
+                response.headers["Content-Length"] = f.size
                 response.headers["X-Accel-Redirect"] = "/" + str(fpath)
             else:
                 response = send_from_directory(app.config["FHOST_STORAGE_PATH"], f.sha256, mimetype = f.mime)
