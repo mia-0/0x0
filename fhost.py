@@ -149,13 +149,17 @@ class File(db.Model):
         self.expiration = expiration
         self.mgmt_token = mgmt_token
 
+    @property
+    def is_nsfw(self) -> bool:
+        return self.nsfw_score and self.nsfw_score > app.config["NSFW_THRESHOLD"]
+
     def getname(self):
         return u"{0}{1}".format(su.enbase(self.id), self.ext)
 
     def geturl(self):
         n = self.getname()
 
-        if self.nsfw_score and self.nsfw_score > app.config["NSFW_THRESHOLD"]:
+        if self.is_nsfw:
             return url_for("get", path=n, secret=self.secret, _external=True, _anchor="nsfw") + "\n"
         else:
             return url_for("get", path=n, secret=self.secret, _external=True) + "\n"
