@@ -227,6 +227,9 @@ class File(db.Model):
             if mime in app.config["FHOST_MIME_BLACKLIST"] or guess in app.config["FHOST_MIME_BLACKLIST"]:
                 abort(415)
 
+            if len(mime) > 128:
+                abort(400)
+
             if mime.startswith("text/") and not "charset" in mime:
                 mime += "; charset=utf-8"
 
