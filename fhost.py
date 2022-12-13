@@ -439,10 +439,11 @@ def get(path, secret=None):
 
     if sufs:
         f = File.query.get(id)
-        if f.secret != secret:
-            abort(404)
 
         if f and f.ext == sufs:
+            if f.secret != secret:
+                abort(404)
+
             if f.removed:
                 abort(451)
 
