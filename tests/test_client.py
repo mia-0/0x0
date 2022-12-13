@@ -56,8 +56,6 @@ def test_client(client):
         ]),
         (302, [
             "E",
-            "E/test",
-            "E/test.bin",
         ]),
         (404, [
             "test.bin",
@@ -67,6 +65,8 @@ def test_client(client):
             "test/test",
             "test.bin/test.py",
             "E.bin",
+            "E/test",
+            "E/test.bin",
         ]),
         (451, [
             "Q.truncate",
