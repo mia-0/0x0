@@ -295,7 +295,7 @@ class File(db.Model):
         f.size = len(data)
 
         if not f.nsfw_score and app.config["NSFW_DETECT"]:
-            f.nsfw_score = nsfw.detect(p)
+            f.nsfw_score = nsfw.detect(str(p))
 
         db.session.add(f)
         db.session.commit()
