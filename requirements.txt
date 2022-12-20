@@ -1,10 +1,25 @@
+click
+Flask_Migrate
+validators
 alembic
+requests
 Jinja2
 Flask
-numpy
-SQLAlchemy
-requests
-Flask_SQLAlchemy
-validators
-flask_migrate
+flask_sqlalchemy
 python_magic
+
+# vscan
+clamd
+
+# nsfw detection
+numpy
+
+# mod ui
+av
+PyMuPDF
+libarchive_c
+textual
+python-mpv
+
+# dev
+pytest
