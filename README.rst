@@ -51,6 +51,9 @@ from this git repository, run ``FLASK_APP=fhost flask db upgrade``.
 Moderation UI
 -------------
 
+.. image:: modui.webp
+  :height: 300
+
 0x0 features a TUI program for file moderation. With it, you can view a list
 of uploaded files, as well as extended information on them. It allows you to
 take actions like removing files temporarily or permanently, as well as
