@@ -62,7 +62,10 @@ class MIMEHandler:
                 "application/java-archive",
                 "application/vnd.openxmlformats"
             ], []],
-            MIMECategory.Text : [["text"], []],
+            MIMECategory.Text : [[
+                "text",
+                "application/json",
+            ], []],
             MIMECategory.AV : [[
                 "audio", "video", "image",
                 "application/mxf"
