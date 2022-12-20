@@ -58,14 +58,19 @@ def upgrade():
         return # There are no currently unexpired files
 
     # Calculate an expiration date for all existing files
-    files = session.scalars(
+
+    q = session.scalars(
             sa.select(File)
             .where(
-                sa.not_(File.removed),
-                File.sha256.in_(unexpired_files)
+                sa.not_(File.removed)
             )
         )
     updates = [] # We coalesce updates to the database here
+
+    # SQLite has a hard limit on the number of variables so we
+    # need to do this the slow way
+    files = [f for f in q if f.sha256 in unexpired_files]
+
     for file in files:
         file_path = storage / file.sha256
         stat = os.stat(file_path)
