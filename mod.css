@@ -1,0 +1,56 @@
+#ftable {
+    width: 1fr;
+}
+
+#infopane {
+    width: 50%;
+    outline-top: hkey $primary;
+    background: $panel;
+}
+
+#finfo {
+    background: $boost;
+    height: 12;
+    width: 1fr;
+    box-sizing: content-box;
+}
+
+#mpv {
+    display: none;
+    height: 20%;
+    width: 1fr;
+    content-align: center middle;
+}
+
+#ftextlog {
+    height: 1fr;
+    width: 1fr;
+}
+
+#filter_container {
+    height: auto;
+    display: none;
+}
+
+#filter_label {
+    content-align: right middle;
+    height: 1fr;
+    width: 20%;
+    margin: 0 1 0 2;
+}
+
+#filter_input {
+    width: 1fr;
+}
+
+Notification {
+    dock: bottom;
+    layer: notification;
+    width: auto;
+    margin: 2 4;
+    padding: 1 2;
+    background: $background;
+    color: $text;
+    height: auto;
+
+}

@@ -48,6 +48,48 @@ Before running the service for the first time and every time you update it
 from this git repository, run ``FLASK_APP=fhost flask db upgrade``.
 
 
+Moderation UI
+-------------
+
+0x0 features a TUI program for file moderation. With it, you can view a list
+of uploaded files, as well as extended information on them. It allows you to
+take actions like removing files temporarily or permanently, as well as
+blocking IP addresses and associated files.
+
+If a sufficiently recent version of python-mpv with libmpv is present and
+your terminal supports it, you also get graphical file previews, including
+video playback. Upstream mpv currently supports sixel graphics, but there is
+`an open pull request <https://github.com/mpv-player/mpv/pull/11002>`_ that
+adds support for the `kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.
+For this to work, set the ``MOD_PREVIEW_PROTO`` option in ``instance/config.py``.
+
+Requirements:
+
+* `Textual <https://textual.textualize.io/>`_
+
+Optional:
+
+* `python-mpv <https://github.com/jaseg/python-mpv>`_
+  (graphical previews)
+* `PyAV <https://github.com/PyAV-Org/PyAV>`_
+  (information on multimedia files)
+* `PyMuPDF <https://github.com/pymupdf/PyMuPDF>`_
+  (previews and file information for PDF, XPS, EPUB, MOBI and FB2)
+* `libarchive-c <https://github.com/Changaco/python-libarchive-c>`_
+  (archive content listing)
+
+.. note::
+    `Mosh <https://mosh.org/>`_ currently does not support sixels or kitty graphics.
+
+.. hint::
+    You may need to set the ``COLORTERM`` environment variable to
+    ``truecolor``.
+
+.. tip::
+    Using compression with SSH (``-C`` option) can significantly
+    reduce the bandwidth requirements for graphics.
+
+
 NSFW Detection
 --------------
 

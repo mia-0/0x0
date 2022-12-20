@@ -58,6 +58,17 @@ FHOST_MIN_EXPIRATION = 30  * 24 * 60 * 60 * 1000
 FHOST_MAX_EXPIRATION = 365 * 24 * 60 * 60 * 1000
 
 
+# This should be detected automatically when running behind a reverse proxy, but needs
+# to be set for URL resolution to work in e.g. the moderation UI.
+# SERVER_NAME = "example.com"
+
+
+# Specifies which graphics protocol to use for the media previews in the moderation UI.
+# Requires pympv with libmpv >= 0.36.0 and terminal support.
+# Available choices are "sixel" and "kitty".
+# MOD_PREVIEW_PROTO = "sixel"
+
+
 # Use the X-SENDFILE header to speed up serving files w/ compatible webservers
 #
 # Some webservers can be configured use the X-Sendfile header to handle sending
