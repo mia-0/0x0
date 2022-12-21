@@ -61,9 +61,8 @@ blocking IP addresses and associated files.
 
 If a sufficiently recent version of python-mpv with libmpv is present and
 your terminal supports it, you also get graphical file previews, including
-video playback. Upstream mpv currently supports sixel graphics, but there is
-`an open pull request <https://github.com/mpv-player/mpv/pull/11002>`_ that
-adds support for the `kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.
+video playback. Upstream mpv currently supports sixels and the
+`kitty graphics protocol <https://sw.kovidgoyal.net/kitty/graphics-protocol/>`_.
 For this to work, set the ``MOD_PREVIEW_PROTO`` option in ``instance/config.py``.
 
 Requirements:
