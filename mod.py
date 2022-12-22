@@ -106,7 +106,7 @@ class NullptrMod(Screen):
                             trm += 1
                         f.delete(True)
                     db.session.commit()
-                    txt += f", removed {trm} {'files' if trm != 1 else 'file'} totaling {jinja2.filters.do_filesizeformat(tsize, True)}"
+                    txt += f", removed {trm} {'files' if trm != 1 else 'file'} totaling {do_filesizeformat(tsize, True)}"
             self.mount(Notification(txt))
             self._refresh_layout()
             ftable = self.query_one("#ftable")
