@@ -65,6 +65,7 @@ class MIMEHandler:
             MIMECategory.Text : [[
                 "text",
                 "application/json",
+                "application/xml",
             ], []],
             MIMECategory.AV : [[
                 "audio", "video", "image",
