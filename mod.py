@@ -251,7 +251,7 @@ class NullptrMod(Screen):
             ("Uploaded by:", Text(f.addr)),
             ("Management token:", f.mgmt_token),
             ("Secret:", f.secret),
-            ("Is NSFW:", ("Yes" if f.is_nsfw else "No") + f" (Score: {f.nsfw_score:0.4f})"),
+            ("Is NSFW:", ("Yes" if f.is_nsfw else "No") + (f" (Score: {f.nsfw_score:0.4f})" if f.nsfw_score else " (Not scanned)")),
             ("Is banned:", "Yes" if f.removed else "No"),
             ("Expires:", time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(File.get_expiration(f.expiration, f.size)/1000)))
         ])
