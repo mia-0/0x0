@@ -247,8 +247,10 @@ class File(db.Model):
             if not ext:
                 if gmime in app.config["FHOST_EXT_OVERRIDE"]:
                     ext = app.config["FHOST_EXT_OVERRIDE"][gmime]
+                elif guess:
+                    ext = guess
                 else:
-                    ext = guess_extension(gmime)
+                    ext = ""
 
             return ext[:app.config["FHOST_MAX_EXT_LENGTH"]] or ".bin"
 
