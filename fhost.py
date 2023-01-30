@@ -484,7 +484,7 @@ def get(path, secret=None):
 
     abort(404)
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"], strict_slashes=False)
 def fhost():
     if request.method == "POST":
         sf = None
