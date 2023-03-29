@@ -26,6 +26,7 @@ class NullptrMod(Screen):
         ("f4", "filter(4, 'Filter extension:')", "Filter Ext."),
         ("f5", "refresh", "Refresh"),
         ("f6", "filter_clear", "Clear filter"),
+        ("f7", "filter(5, 'Filter user agent:')", "Filter UA"),
         ("r", "remove_file(False)", "Remove file"),
         ("ctrl+r", "remove_file(True)", "Ban file"),
         ("p", "ban_ip(False)", "Ban IP"),
@@ -60,6 +61,7 @@ class NullptrMod(Screen):
                 case 2: finput.value = self.current_file.addr
                 case 3: finput.value = self.current_file.mime
                 case 4: finput.value = self.current_file.ext
+                case 5: finput.value = self.current_file.ua
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         self.query_one("#filter_container").display = False
@@ -74,6 +76,7 @@ class NullptrMod(Screen):
                 case 2: ftable.query = ftable.base_query.filter(File.addr == message.value)
                 case 3: ftable.query = ftable.base_query.filter(File.mime.like(message.value))
                 case 4: ftable.query = ftable.base_query.filter(File.ext.like(message.value))
+                case 5: ftable.query = ftable.base_query.filter(File.ua.like(message.value))
         else:
             ftable.query = ftable.base_query
 
@@ -249,6 +252,7 @@ class NullptrMod(Screen):
             ("MIME type:", f.mime),
             ("SHA256 checksum:", f.sha256),
             ("Uploaded by:", Text(f.addr)),
+            ("User agent:", Text(f.ua or "")),
             ("Management token:", f.mgmt_token),
             ("Secret:", f.secret),
             ("Is NSFW:", ("Yes" if f.is_nsfw else "No") + (f" (Score: {f.nsfw_score:0.4f})" if f.nsfw_score else " (Not scanned)")),

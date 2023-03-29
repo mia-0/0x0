@@ -135,6 +135,7 @@ class File(db.Model):
     ext = db.Column(db.UnicodeText)
     mime = db.Column(db.UnicodeText)
     addr = db.Column(db.UnicodeText)
+    ua = db.Column(db.UnicodeText)
     removed = db.Column(db.Boolean, default=False)
     nsfw_score = db.Column(db.Float)
     expiration = db.Column(db.BigInteger)
@@ -143,11 +144,12 @@ class File(db.Model):
     last_vscan = db.Column(db.DateTime)
     size = db.Column(db.BigInteger)
 
-    def __init__(self, sha256, ext, mime, addr, expiration, mgmt_token):
+    def __init__(self, sha256, ext, mime, addr, ua, expiration, mgmt_token):
         self.sha256 = sha256
         self.ext = ext
         self.mime = mime
         self.addr = addr
+        self.ua = ua
         self.expiration = expiration
         self.mgmt_token = mgmt_token
 
@@ -212,7 +214,7 @@ class File(db.Model):
     Any value greater that the longest allowed file lifespan will be rounded down to that
     value.
     """
-    def store(file_, requested_expiration: typing.Optional[int], addr, secret: bool):
+    def store(file_, requested_expiration: typing.Optional[int], addr, ua, secret: bool):
         data = file_.read()
         digest = sha256(data).hexdigest()
 
@@ -278,9 +280,10 @@ class File(db.Model):
             mime = get_mime()
             ext = get_ext(mime)
             mgmt_token = secrets.token_urlsafe()
-            f = File(digest, ext, mime, addr, expiration, mgmt_token)
+            f = File(digest, ext, mime, addr, ua, expiration, mgmt_token)
 
         f.addr = addr
+        f.ua = ua
 
         if isnew:
             f.secret = None
@@ -368,11 +371,11 @@ requested_expiration can be:
 Any value greater that the longest allowed file lifespan will be rounded down to that
 value.
 """
-def store_file(f, requested_expiration:  typing.Optional[int], addr, secret: bool):
+def store_file(f, requested_expiration:  typing.Optional[int], addr, ua, secret: bool):
     if in_upload_bl(addr):
         return "Your host is blocked from uploading files.\n", 451
 
-    sf, isnew = File.store(f, requested_expiration, addr, secret)
+    sf, isnew = File.store(f, requested_expiration, addr, ua, secret)
 
     response = make_response(sf.geturl())
     response.headers["X-Expires"] = sf.expiration
@@ -382,7 +385,7 @@ def store_file(f, requested_expiration:  typing.Optional[int], addr, secret: boo
 
     return response
 
-def store_url(url, addr, secret: bool):
+def store_url(url, addr, ua, secret: bool):
     if is_fhost_url(url):
         abort(400)
 
@@ -403,7 +406,7 @@ def store_url(url, addr, secret: bool):
 
             f = urlfile(read=r.raw.read, content_type=r.headers["content-type"], filename="")
 
-            return store_file(f, None, addr, secret)
+            return store_file(f, None, addr, ua, secret)
         else:
             abort(413)
     else:
@@ -498,6 +501,7 @@ def fhost():
                     request.files["file"],
                     int(request.form["expires"]),
                     request.remote_addr,
+                    request.user_agent.string,
                     secret
                 )
             except ValueError:
@@ -509,12 +513,14 @@ def fhost():
                     request.files["file"],
                     None,
                     request.remote_addr,
+                    request.user_agent.string,
                     secret
                 )
         elif "url" in request.form:
             return store_url(
                 request.form["url"],
                 request.remote_addr,
+                request.user_agent.string,
                 secret
             )
         elif "shorten" in request.form:
