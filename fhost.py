@@ -106,6 +106,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 class URL(db.Model):
+    __tablename__ = "URL"
     id = db.Column(db.Integer, primary_key = True)
     url = db.Column(db.UnicodeText, unique = True)
 
