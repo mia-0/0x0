@@ -73,7 +73,7 @@ class NullptrMod(Screen):
                 case 1:
                     try: ftable.query = ftable.base_query.filter(File.id == su.debase(message.value))
                     except ValueError: pass
-                case 2: ftable.query = ftable.base_query.filter(File.addr == message.value)
+                case 2: ftable.query = ftable.base_query.filter(File.addr.like(message.value))
                 case 3: ftable.query = ftable.base_query.filter(File.mime.like(message.value))
                 case 4: ftable.query = ftable.base_query.filter(File.ext.like(message.value))
                 case 5: ftable.query = ftable.base_query.filter(File.ua.like(message.value))
