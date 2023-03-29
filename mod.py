@@ -61,7 +61,7 @@ class NullptrMod(Screen):
                 case 2: finput.value = self.current_file.addr
                 case 3: finput.value = self.current_file.mime
                 case 4: finput.value = self.current_file.ext
-                case 5: finput.value = self.current_file.ua
+                case 5: finput.value = self.current_file.ua or ""
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         self.query_one("#filter_container").display = False
