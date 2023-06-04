@@ -400,7 +400,7 @@ def store_url(url, addr, ua, secret: bool):
     if "content-length" in r.headers:
         l = int(r.headers["content-length"])
 
-        if l < app.config["MAX_CONTENT_LENGTH"]:
+        if l <= app.config["MAX_CONTENT_LENGTH"]:
             def urlfile(**kwargs):
                 return type('',(),kwargs)()
 
