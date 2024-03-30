@@ -5,7 +5,7 @@ from sys import stdout
 import time
 
 from textual.app import App, ComposeResult
-from textual.widgets import DataTable, Header, Footer, TextLog, Static, Input
+from textual.widgets import DataTable, Header, Footer, RichLog, Static, Input
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual import log
@@ -20,13 +20,13 @@ fhost_app.app_context().push()
 class NullptrMod(Screen):
     BINDINGS = [
         ("q", "quit_app", "Quit"),
-        ("f1", "filter(1, 'Lookup name:')", "Lookup name"),
-        ("f2", "filter(2, 'Filter IP address:')", "Filter IP"),
-        ("f3", "filter(3, 'Filter MIME Type:')", "Filter MIME"),
-        ("f4", "filter(4, 'Filter extension:')", "Filter Ext."),
+        ("f1", "filter(1, 'Name')", "Lookup name"),
+        ("f2", "filter(2, 'IP address')", "Filter IP"),
+        ("f3", "filter(3, 'MIME Type')", "Filter MIME"),
+        ("f4", "filter(4, 'Extension')", "Filter Ext."),
         ("f5", "refresh", "Refresh"),
         ("f6", "filter_clear", "Clear filter"),
-        ("f7", "filter(5, 'Filter user agent:')", "Filter UA"),
+        ("f7", "filter(5, 'User agent')", "Filter UA"),
         ("r", "remove_file(False)", "Remove file"),
         ("ctrl+r", "remove_file(True)", "Ban file"),
         ("p", "ban_ip(False)", "Ban IP"),
@@ -42,29 +42,28 @@ class NullptrMod(Screen):
         ftable.watch_query(None, None)
 
     def action_filter_clear(self):
-        self.query_one("#filter_container").display = False
+        self.finput.display = False
         ftable = self.query_one("#ftable")
         ftable.focus()
         ftable.query = ftable.base_query
 
     def action_filter(self, fcol: int, label: str):
-        self.query_one("#filter_label").update(label)
-        finput = self.query_one("#filter_input")
+        self.finput.placeholder = label
+        self.finput.display = True
+        self.finput.focus()
         self.filter_col = fcol
-        self.query_one("#filter_container").display = True
-        finput.focus()
         self._refresh_layout()
 
         if self.current_file:
             match fcol:
-                case 1: finput.value = ""
-                case 2: finput.value = self.current_file.addr
-                case 3: finput.value = self.current_file.mime
-                case 4: finput.value = self.current_file.ext
-                case 5: finput.value = self.current_file.ua or ""
+                case 1: self.finput.value = ""
+                case 2: self.finput.value = self.current_file.addr
+                case 3: self.finput.value = self.current_file.mime
+                case 4: self.finput.value = self.current_file.ext
+                case 5: self.finput.value = self.current_file.ua or ""
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
-        self.query_one("#filter_container").display = False
+        self.finput.display = False
         ftable = self.query_one("#ftable")
         ftable.focus()
 
@@ -122,13 +121,13 @@ class NullptrMod(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Horizontal(
-            FileTable(id="ftable", zebra_stripes=True),
+            FileTable(id="ftable", zebra_stripes=True, cursor_type="row"),
             Vertical(
-                DataTable(id="finfo", show_header=False),
+                DataTable(id="finfo", show_header=False, cursor_type="none"),
                 MpvWidget(id="mpv"),
-                TextLog(id="ftextlog"),
+                RichLog(id="ftextlog", auto_scroll=False),
             id="infopane"))
-        yield Horizontal(Static("Filter:", id="filter_label"), Input(id="filter_input"), id="filter_container")
+        yield Input(id="filter_input")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -142,6 +141,8 @@ class NullptrMod(Screen):
 
         self.mpvw = self.query_one("#mpv")
         self.ftlog = self.query_one("#ftextlog")
+
+        self.finput = self.query_one("#filter_input")
 
         self.mimehandler = mime.MIMEHandler()
         self.mimehandler.register(mime.MIMECategory.Archive, self.handle_libarchive)
@@ -261,13 +262,11 @@ class NullptrMod(Screen):
         ])
 
         self.mpvw.stop_mpv(True)
-        self.ftlog.remove()
-        self.query_one("#infopane").mount(TextLog(id="ftextlog"))
-        self.ftlog = self.query_one("#ftextlog")
+        self.ftlog.clear()
 
         if f.getpath().is_file():
             self.mimehandler.handle(f.mime, f.ext)
-            self.ftlog.scroll_home(animate=False)
+            self.ftlog.scroll_to(x=0, y=0, animate=False)
 
 class NullptrModApp(App):
     CSS_PATH = "mod.css"

@@ -1,6 +1,6 @@
 from textual.widgets import DataTable, Static
 from textual.reactive import Reactive
-from textual.message import Message, MessageTarget
+from textual.message import Message
 from textual import events, log
 from jinja2.filters import do_filesizeformat
 
@@ -21,9 +21,9 @@ class FileTable(DataTable):
         self.query = self.base_query
 
     class Selected(Message):
-        def __init__(self, sender: MessageTarget, f: File) -> None:
+        def __init__(self, f: File) -> None:
             self.file = f
-            super().__init__(sender)
+            super().__init__()
 
     def watch_order_col(self, old, value) -> None:
         self.watch_query(None, None)
@@ -44,25 +44,39 @@ class FileTable(DataTable):
             )
 
         if (self.query):
-            self.clear()
+
             order = FileTable.colmap[self.order_col]
             q = self.query
             if order: q = q.order_by(order.desc() if self.order_desc else order, File.id)
-            self.add_rows(map(fmt_file, q.limit(self.limit)))
+            qres = list(map(fmt_file, q.limit(self.limit)))
 
-    def _scroll_cursor_in_to_view(self, animate: bool = False) -> None:
-        region = self._get_cell_region(self.cursor_row, 0)
-        spacing = self._get_cell_border()
-        self.scroll_to_region(region, animate=animate, spacing=spacing)
+            ri = 0
+            row = self.cursor_coordinate.row
+            if row < self.row_count and row >= 0:
+                ri = int(self.get_row_at(row)[0])
 
-    async def watch_cursor_cell(self, old, value) -> None:
-        super().watch_cursor_cell(old, value)
-        if value[0] < len(self.data) and value[0] >= 0:
-            f = File.query.get(int(self.data[value[0]][0]))
-            await self.emit(self.Selected(self, f))
+            self.clear()
+            self.add_rows(qres)
+
+            for i, v in enumerate(qres):
+                if int(v[0]) == ri:
+                    self.move_cursor(row=i)
+                    break
+
+            self.on_selected()
+
+    def on_selected(self) -> Selected:
+        row = self.cursor_coordinate.row
+        if row < self.row_count and row >= 0:
+            f = File.query.get(int(self.get_row_at(row)[0]))
+            self.post_message(self.Selected(f))
+
+    def watch_cursor_coordinate(self, old, value) -> None:
+        super().watch_cursor_coordinate(old, value)
+        if old != value:
+            self.on_selected()
 
     def on_click(self, event: events.Click) -> None:
-        super().on_click(event)
         meta = self.get_style_at(event.x, event.y).meta
         if meta:
             if meta["row"] == -1:

@@ -1,5 +1,6 @@
 #ftable {
     width: 1fr;
+    height: 100%;
 }
 
 #infopane {
@@ -10,7 +11,7 @@
 
 #finfo {
     background: $boost;
-    height: 12;
+    height: 14;
     width: 1fr;
     box-sizing: content-box;
 }
@@ -27,20 +28,9 @@
     width: 1fr;
 }
 
-#filter_container {
-    height: auto;
-    display: none;
-}
-
-#filter_label {
-    content-align: right middle;
-    height: 1fr;
-    width: 20%;
-    margin: 0 1 0 2;
-}
-
 #filter_input {
     width: 1fr;
+    display: none;
 }
 
 Notification {
